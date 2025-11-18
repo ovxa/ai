@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Message, AgentColor } from '@/types'
 import { useChatStore } from '@/lib/store'
 import { getAgentById } from '@/lib/agents'
 import { highlightMentions } from '@/utils/mention'
+import { hasMarkdownSyntax, generateSummary } from '@/utils/markdown'
+import MarkdownRenderer from './MarkdownRenderer'
+import FullscreenMarkdown from './FullscreenMarkdown'
 
 const colorClasses: Record<AgentColor, string> = {
   blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -34,90 +37,157 @@ const dotColorClasses: Record<AgentColor, string> = {
 function MessageBubble({ message }: { message: Message }) {
   const agent = message.agentId ? getAgentById(message.agentId) : null
   const isUser = message.role === 'user'
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [showFullscreen, setShowFullscreen] = useState(false)
 
-  // 高亮显示 @mentions
+  // 检测是否包含 Markdown
+  const hasMarkdown = hasMarkdownSyntax(message.content)
+
+  // 高亮显示 @mentions（仅用于纯文本模式）
   const parts = highlightMentions(message.content)
 
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div className={`max-w-[80%] ${isUser ? 'order-2' : 'order-1'}`}>
-        {/* 发送者信息 */}
-        {!isUser && agent && (
-          <div className="flex items-center gap-2 mb-1 px-1">
-            <div className={`w-2 h-2 rounded-full ${dotColorClasses[agent.color]}`} />
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              {agent.name}
-            </span>
-          </div>
-        )}
+  // 生成摘要（用于折叠显示）
+  const summary = generateSummary(message.content, 80)
 
-        {/* 消息气泡 */}
-        <div className={`
-          rounded-lg px-4 py-3 break-words
-          ${isUser
-            ? 'bg-blue-500 text-white'
-            : agent
-              ? `${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100`
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-          }
-        `}>
-          {/* 显示提及的 agents（仅用户消息） */}
-          {isUser && message.mentions && message.mentions.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2 pb-2 border-b border-white/20">
-              {message.mentions.map(mentionId => {
-                const mentionedAgent = getAgentById(mentionId)
-                return mentionedAgent ? (
-                  <span
-                    key={mentionId}
-                    className="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm"
-                  >
-                    {mentionedAgent.mention}
-                  </span>
-                ) : null
-              })}
+  // 自动折叠长消息或包含 Markdown 的消息
+  const shouldCollapse = hasMarkdown || message.content.length > 200
+  const isCollapsed = shouldCollapse && !isExpanded
+
+  const handleClick = () => {
+    if (shouldCollapse) {
+      if (hasMarkdown) {
+        // Markdown 消息：打开全屏查看
+        setShowFullscreen(true)
+      } else {
+        // 长消息：展开/折叠
+        setIsExpanded(!isExpanded)
+      }
+    }
+  }
+
+  return (
+    <>
+      <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+        <div className={`max-w-[80%] ${isUser ? 'order-2' : 'order-1'}`}>
+          {/* 发送者信息 */}
+          {!isUser && agent && (
+            <div className="flex items-center gap-2 mb-1 px-1">
+              <div className={`w-2 h-2 rounded-full ${dotColorClasses[agent.color]}`} />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                {agent.name}
+              </span>
             </div>
           )}
 
-          {/* 消息内容 */}
-          <div className="whitespace-pre-wrap">
-            {parts.map((part, index) => {
-              if (part.type === 'mention') {
-                const mentionedAgent = part.agentId ? getAgentById(part.agentId) : null
-                const colorClass = mentionedAgent
-                  ? colorClasses[mentionedAgent.color]
-                  : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-
-                return (
-                  <span
-                    key={index}
-                    className={`inline-block px-1.5 py-0.5 rounded text-sm font-medium ${
-                      part.content === '@all'
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                        : isUser
-                          ? 'bg-white/30 text-white'
-                          : colorClass
-                    }`}
-                  >
-                    {part.content}
-                  </span>
-                )
+          {/* 消息气泡 */}
+          <div
+            className={`
+              rounded-lg px-4 py-3 break-words transition-all
+              ${shouldCollapse ? 'cursor-pointer hover:shadow-lg' : ''}
+              ${isUser
+                ? 'bg-blue-500 text-white'
+                : agent
+                  ? `${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100`
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
               }
-              return <span key={index}>{part.content}</span>
+            `}
+            onClick={handleClick}
+          >
+            {/* 显示提及的 agents（仅用户消息） */}
+            {isUser && message.mentions && message.mentions.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2 pb-2 border-b border-white/20">
+                {message.mentions.map(mentionId => {
+                  const mentionedAgent = getAgentById(mentionId)
+                  return mentionedAgent ? (
+                    <span
+                      key={mentionId}
+                      className="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm"
+                    >
+                      {mentionedAgent.mention}
+                    </span>
+                  ) : null
+                })}
+              </div>
+            )}
+
+            {/* 折叠状态标识 */}
+            {shouldCollapse && (
+              <div className="flex items-center gap-2 mb-2 text-xs opacity-70">
+                {hasMarkdown && (
+                  <span className="px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded">
+                    Markdown
+                  </span>
+                )}
+                {isCollapsed && (
+                  <span className="px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded">
+                    点击{hasMarkdown ? '全屏查看' : '展开'}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* 消息内容 */}
+            {hasMarkdown && !isCollapsed ? (
+              // Markdown 渲染
+              <div className={isUser ? 'text-white' : ''}>
+                <MarkdownRenderer content={message.content} />
+              </div>
+            ) : isCollapsed ? (
+              // 折叠状态：显示摘要
+              <div className="whitespace-pre-wrap opacity-80">
+                {summary}
+              </div>
+            ) : (
+              // 纯文本：高亮 @mentions
+              <div className="whitespace-pre-wrap">
+                {parts.map((part, index) => {
+                  if (part.type === 'mention') {
+                    const mentionedAgent = part.agentId ? getAgentById(part.agentId) : null
+                    const colorClass = mentionedAgent
+                      ? colorClasses[mentionedAgent.color]
+                      : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+
+                    return (
+                      <span
+                        key={index}
+                        className={`inline-block px-1.5 py-0.5 rounded text-sm font-medium ${
+                          part.content === '@all'
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                            : isUser
+                              ? 'bg-white/30 text-white'
+                              : colorClass
+                        }`}
+                      >
+                        {part.content}
+                      </span>
+                    )
+                  }
+                  return <span key={index}>{part.content}</span>
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 时间戳 */}
+          <div className={`text-xs text-gray-500 dark:text-gray-500 mt-1 px-1 ${
+            isUser ? 'text-right' : 'text-left'
+          }`}>
+            {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
+              hour: '2-digit',
+              minute: '2-digit'
             })}
           </div>
         </div>
-
-        {/* 时间戳 */}
-        <div className={`text-xs text-gray-500 dark:text-gray-500 mt-1 px-1 ${
-          isUser ? 'text-right' : 'text-left'
-        }`}>
-          {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </div>
       </div>
-    </div>
+
+      {/* 全屏 Markdown 查看 */}
+      {showFullscreen && (
+        <FullscreenMarkdown
+          content={message.content}
+          onClose={() => setShowFullscreen(false)}
+        />
+      )}
+    </>
   )
 }
 

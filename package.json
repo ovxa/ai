@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "next": "^14.2.0",
+    "openai": "^4.28.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "zustand": "^4.5.0",
-    "openai": "^4.28.0"
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

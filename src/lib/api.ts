@@ -1,5 +1,6 @@
 import { AIAgent } from '@/types'
 import { Message } from '@/types'
+import { estimateTokens } from '@/utils/markdown'
 
 export interface ChatAPIRequest {
   agentId: string
@@ -19,6 +20,95 @@ export interface APIEndpoint {
 }
 
 const DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
+const MAX_CONTEXT_TOKENS = 200000 // 最大上下文 tokens
+
+/**
+ * 压缩消息历史，保留最近的消息，旧消息总结
+ */
+function compressHistory(messages: Message[]): Message[] {
+  // 估算总 tokens
+  let totalTokens = 0
+  const compressedMessages: Message[] = []
+
+  // 从后往前遍历（保留最新消息）
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    const msgTokens = estimateTokens(msg.content)
+
+    if (totalTokens + msgTokens < MAX_CONTEXT_TOKENS) {
+      compressedMessages.unshift(msg)
+      totalTokens += msgTokens
+    } else {
+      // 超过限制，总结剩余所有旧消息
+      const oldMessages = messages.slice(0, i + 1)
+      const summary = summarizeMessages(oldMessages)
+
+      // 添加总结消息到开头
+      compressedMessages.unshift({
+        id: 'summary',
+        role: 'assistant',
+        content: `[历史消息总结]: ${summary}`,
+        timestamp: oldMessages[0]?.timestamp || Date.now()
+      })
+
+      break
+    }
+  }
+
+  return compressedMessages
+}
+
+/**
+ * 总结多条消息为一句话
+ */
+function summarizeMessages(messages: Message[]): string {
+  if (messages.length === 0) return '无历史消息'
+
+  const userMessages = messages.filter(m => m.role === 'user')
+  const assistantMessages = messages.filter(m => m.role === 'assistant')
+
+  const summary = `用户提出了 ${userMessages.length} 个问题，AI 回复了 ${assistantMessages.length} 次。`
+
+  // 提取最重要的几个关键词
+  const allContent = messages.map(m => m.content).join(' ')
+  const keywords = extractKeywords(allContent, 5)
+
+  if (keywords.length > 0) {
+    return `${summary} 讨论主题包括：${keywords.join('、')}`
+  }
+
+  return summary
+}
+
+/**
+ * 提取关键词（简单实现）
+ */
+function extractKeywords(text: string, maxCount: number): string[] {
+  // 移除 Markdown 语法
+  const cleanText = text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]+`/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_#>-]/g, '')
+
+  // 分词（简单按空格和标点分割）
+  const words = cleanText
+    .split(/[\s,，。！？；：、\n]+/)
+    .filter(w => w.length > 2 && w.length < 20)
+
+  // 统计词频
+  const wordCount = new Map<string, number>()
+  words.forEach(word => {
+    const count = wordCount.get(word) || 0
+    wordCount.set(word, count + 1)
+  })
+
+  // 排序并返回前 N 个
+  return Array.from(wordCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxCount)
+    .map(([word]) => word)
+}
 
 /**
  * 客户端直接调用 AI API
@@ -48,14 +138,15 @@ export async function callChatAPI(
     )
   }
 
+  // 压缩历史消息（超过 200K tokens 时自动总结）
+  const compressedHistory = compressHistory(historyMessages)
+
   const messages = [
-    // 只包含最近的消息历史（最多 20 条）
-    ...historyMessages
-      .slice(-20)
-      .map((msg: Message) => ({
-        role: msg.role,
-        content: msg.content
-      })),
+    // 使用压缩后的消息历史
+    ...compressedHistory.map((msg: Message) => ({
+      role: msg.role,
+      content: msg.content
+    })),
     {
       role: 'user',
       content: request.message
