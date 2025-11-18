@@ -5,9 +5,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // GitHub Pages 通常部署在子路径，如 /repo-name
-  // 如果部署在根路径，可以注释掉 basePath
-  // basePath: '/ai',
+  // GitHub Pages 部署在子路径 /ai/
+  basePath: '/ai',
 }
 
 module.exports = nextConfig
