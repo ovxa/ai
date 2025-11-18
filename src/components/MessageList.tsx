@@ -255,8 +255,10 @@ export default function MessageList() {
   const messages = useChatStore(state => state.messages)
   const streamingAgentId = useChatStore(state => state.streamingAgentId)
   const streamingContent = useChatStore(state => state.streamingContent)
+  const pendingAgents = useChatStore(state => state.pendingAgents)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+  const t = useTranslation()
 
   // 检测用户是否手动滚动
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -304,6 +306,46 @@ export default function MessageList() {
           }}
         />
       )}
+
+      {/* 等待回复的AI占位符 - 显示生成动画 */}
+      {pendingAgents.map(agentId => {
+        // 跳过正在流式输出的AI
+        if (streamingAgentId === agentId) return null
+
+        const agent = getAgentById(agentId)
+        if (!agent) return null
+
+        return (
+          <div key={`pending-${agentId}`} className="flex justify-start mb-4">
+            <div className="max-w-[80%]">
+              {/* 发送者信息 */}
+              <div className="flex items-center gap-2 mb-1 px-1">
+                <div className={`w-2 h-2 rounded-full ${dotColorClasses[agent.color]}`} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {agent.name}
+                </span>
+              </div>
+
+              {/* 占位符消息气泡 */}
+              <div
+                className={`
+                  rounded-lg px-4 py-3 pb-8 break-words relative
+                  ${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100
+                `}
+              >
+                {/* 生成动画 */}
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{t.generating}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
 
       <div ref={messagesEndRef} />
     </div>
