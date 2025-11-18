@@ -40,6 +40,14 @@ function MessageBubble({ message }: { message: Message }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showFullscreen, setShowFullscreen] = useState(false)
 
+  // 获取当前流式输出状态
+  const streamingAgentId = useChatStore(state => state.streamingAgentId)
+  const isLoading = useChatStore(state => state.isLoading)
+  const stopGeneration = useChatStore(state => state.stopGeneration)
+
+  // 判断当前消息是否正在流式输出
+  const isStreaming = message.id === 'streaming' && streamingAgentId === message.agentId
+
   // 检测是否包含 Markdown
   const hasMarkdown = hasMarkdownSyntax(message.content)
 
@@ -82,7 +90,7 @@ function MessageBubble({ message }: { message: Message }) {
           {/* 消息气泡 */}
           <div
             className={`
-              rounded-lg px-4 py-3 break-words transition-all
+              rounded-lg px-4 py-3 break-words transition-all relative
               ${shouldCollapse ? 'cursor-pointer hover:shadow-lg' : ''}
               ${isUser
                 ? 'bg-blue-500 text-white'
@@ -93,6 +101,27 @@ function MessageBubble({ message }: { message: Message }) {
             `}
             onClick={handleClick}
           >
+            {/* 加载动画和停止按钮 - 仅在折叠且正在加载时显示 */}
+            {isCollapsed && isStreaming && (
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                {/* 加载圆圈 */}
+                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+
+                {/* 停止按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    stopGeneration()
+                  }}
+                  className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                  title="停止生成"
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                </button>
+              </div>
+            )}
             {/* 显示提及的 agents（仅用户消息） */}
             {isUser && message.mentions && message.mentions.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2 pb-2 border-b border-white/20">
@@ -196,11 +225,21 @@ export default function MessageList() {
   const streamingAgentId = useChatStore(state => state.streamingAgentId)
   const streamingContent = useChatStore(state => state.streamingContent)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
 
-  // 自动滚动到底部
+  // 检测用户是否手动滚动
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget
+    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100
+    setShouldAutoScroll(isNearBottom)
+  }
+
+  // 自动滚动到底部（仅当用户在底部附近时）
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+    if (shouldAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, streamingContent, shouldAutoScroll])
 
   if (messages.length === 0) {
     return (
@@ -217,7 +256,7 @@ export default function MessageList() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-6">
+    <div className="h-full overflow-y-auto px-4 py-6" onScroll={handleScroll}>
       {messages.map(message => (
         <MessageBubble key={message.id} message={message} />
       ))}

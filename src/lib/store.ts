@@ -15,6 +15,7 @@ interface ChatStore {
   customEndpoint: string | null // 自定义 API endpoint
   streamingAgentId: AgentId | null // 当前正在流式输出的 agent
   streamingContent: string // 流式输出的内容
+  abortController: AbortController | null // 用于中断请求
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -25,6 +26,7 @@ interface ChatStore {
   clearCurrentMentions: () => void
   sendMessage: (content: string) => Promise<void>
   sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean) => Promise<void>
+  stopGeneration: () => void
   setAPIKey: (key: string) => void
   setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
@@ -54,6 +56,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   customEndpoint: null,
   streamingAgentId: null,
   streamingContent: '',
+  abortController: null,
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -112,7 +115,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendMessage: async (content) => {
-    const { addMessage, sendToSpecificAgents } = get()
+    const { addMessage, sendToSpecificAgents, stopGeneration } = get()
+
+    // 停止之前的生成
+    stopGeneration()
+
+    // 创建新的 AbortController
+    const abortController = new AbortController()
+    set({ abortController })
 
     // 解析消息中的 @mentions
     const { mentions, cleanContent, isAll } = parseMessage(content)
@@ -136,7 +146,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false) => {
-    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint } = get()
+    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, abortController } = get()
 
     // 检查 API key
     if (!apiKey) {
@@ -152,6 +162,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (sequential) {
         // 顺序执行：one by one，每个AI等待上一个AI的回复
         for (const agentId of agentIds) {
+          // 检查是否已中止
+          if (abortController?.signal.aborted) {
+            break
+          }
+
           const agent = getAgentById(agentId)
           if (!agent) {
             console.error(`Agent ${agentId} not found`)
@@ -174,7 +189,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               (chunk) => {
                 // 流式更新回调
                 updateStreamingMessage(agentId, chunk)
-              }
+              },
+              abortController?.signal
             )
 
             // 完成流式输出
@@ -263,6 +279,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       set({ error: '发送消息失败，请重试' })
     } finally {
       set({ isLoading: false })
+    }
+  },
+
+  stopGeneration: () => {
+    const { abortController } = get()
+    if (abortController) {
+      abortController.abort()
+      set({
+        abortController: null,
+        isLoading: false,
+        streamingAgentId: null,
+        streamingContent: ''
+      })
     }
   },
 
