@@ -1,57 +1,17 @@
 import { useEffect } from 'react'
-import { AI_AGENTS } from '@/lib/agents'
 import { useChatStore } from '@/lib/store'
-import { AgentColor } from '@/types'
-import AIAgentCard from './AIAgentCard'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import APIKeySettings from './APIKeySettings'
 import ModelSettings from './ModelSettings'
 
-// 颜色映射
-const colorMap: Record<AgentColor, { border: string; bg: string; text: string }> = {
-  blue: {
-    border: 'border-blue-500',
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    text: 'text-blue-600 dark:text-blue-400'
-  },
-  purple: {
-    border: 'border-purple-500',
-    bg: 'bg-purple-50 dark:bg-purple-900/20',
-    text: 'text-purple-600 dark:text-purple-400'
-  },
-  green: {
-    border: 'border-green-500',
-    bg: 'bg-green-50 dark:bg-green-900/20',
-    text: 'text-green-600 dark:text-green-400'
-  },
-  orange: {
-    border: 'border-orange-500',
-    bg: 'bg-orange-50 dark:bg-orange-900/20',
-    text: 'text-orange-600 dark:text-orange-400'
-  },
-  pink: {
-    border: 'border-pink-500',
-    bg: 'bg-pink-50 dark:bg-pink-900/20',
-    text: 'text-pink-600 dark:text-pink-400'
-  },
-  cyan: {
-    border: 'border-cyan-500',
-    bg: 'bg-cyan-50 dark:bg-cyan-900/20',
-    text: 'text-cyan-600 dark:text-cyan-400'
-  }
-}
-
 export default function ChatInterface() {
-  const { currentMentions, error, reset, initializeAPIKey } = useChatStore()
+  const { error, reset, initializeAPIKey } = useChatStore()
 
   // 初始化 API key（从 URL 或 localStorage）
   useEffect(() => {
     initializeAPIKey()
   }, [initializeAPIKey])
-
-  // 检查是否有任何 agent 被提及
-  const hasMentions = currentMentions.length > 0
 
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-2rem)]">
@@ -73,11 +33,15 @@ export default function ChatInterface() {
             <APIKeySettings />
             <button
               onClick={reset}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
-                       bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
-                       rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm
+                       bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                       rounded-lg transition-colors"
+              title="清空对话"
             >
-              清空对话
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span className="hidden sm:inline">清空</span>
             </button>
           </div>
         </div>
@@ -97,71 +61,7 @@ export default function ChatInterface() {
 
       {/* Main content area */}
       <div className="flex flex-col h-[calc(100%-10rem)] lg:h-[calc(100%-8rem)]">
-        {/* AI Agent Cards - Horizontal scroll on mobile, grid on desktop */}
-        <div className="mb-3">
-          <div className="flex lg:grid lg:grid-cols-3 gap-2 lg:gap-4 overflow-x-auto lg:overflow-x-visible pb-2">
-            {AI_AGENTS.map(agent => {
-              const isMentioned = hasMentions
-                ? currentMentions.includes(agent.id)
-                : true
-
-              const agentState = useChatStore.getState().agents.get(agent.id)
-              const status = agentState?.status || 'offline'
-
-              const colors = colorMap[agent.color]
-
-              return (
-                <div
-                  key={agent.id}
-                  className={`
-                    flex-shrink-0 w-20 lg:w-auto
-                    rounded-lg border-2 p-2 lg:p-3 transition-all duration-300
-                    ${isMentioned
-                      ? `${colors.border} ${colors.bg} opacity-100`
-                      : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50'
-                    }
-                  `}
-                >
-                  {/* Mobile: Ultra-compact view */}
-                  <div className="lg:hidden flex flex-col items-center text-center gap-1">
-                    <div className={`w-2.5 h-2.5 rounded-full ${
-                      status === 'online' ? 'bg-green-500' :
-                      status === 'typing' ? 'bg-blue-500 animate-pulse' :
-                      status === 'error' ? 'bg-red-500' :
-                      'bg-gray-400'
-                    }`} />
-                    <div className={`text-[11px] font-semibold truncate w-full ${colors.text}`}>
-                      {agent.name}
-                    </div>
-                    <div className="text-[9px] text-gray-500 dark:text-gray-400 font-mono">
-                      {agent.mention}
-                    </div>
-                  </div>
-
-                  {/* Desktop: Compact card view */}
-                  <div className="hidden lg:flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <div className={`text-sm font-semibold ${colors.text}`}>
-                        {agent.name}
-                      </div>
-                      <div className={`w-2 h-2 rounded-full ${
-                        status === 'online' ? 'bg-green-500' :
-                        status === 'typing' ? 'bg-blue-500 animate-pulse' :
-                        status === 'error' ? 'bg-red-500' :
-                        'bg-gray-400'
-                      }`} />
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
-                      {agent.mention}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Chat area - Takes remaining space */}
+        {/* Chat area - Full height */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
