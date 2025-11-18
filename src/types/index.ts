@@ -1,11 +1,12 @@
-export type AgentId = 'analyst' | 'creator' | 'evaluator'
+export type AgentId = string
 export type AgentStatus = 'online' | 'offline' | 'typing' | 'error'
+export type AgentColor = 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'cyan'
 
 export interface AIAgent {
   id: AgentId
   name: string
   mention: string
-  color: 'blue' | 'purple' | 'green'
+  color: AgentColor
   role: string
   systemPrompt: string
   model: string

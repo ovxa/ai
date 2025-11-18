@@ -1,4 +1,4 @@
-import { AIAgent, AgentStatus } from '@/types'
+import { AIAgent, AgentStatus, AgentColor } from '@/types'
 import { useChatStore } from '@/lib/store'
 
 interface AIAgentCardProps {
@@ -6,7 +6,7 @@ interface AIAgentCardProps {
   isMentioned: boolean
 }
 
-const colorClasses = {
+const colorClasses: Record<AgentColor, { bg: string; border: string; text: string; dim: string }> = {
   blue: {
     bg: 'bg-blue-50 dark:bg-blue-900/20',
     border: 'border-blue-500',
@@ -24,6 +24,24 @@ const colorClasses = {
     border: 'border-green-500',
     text: 'text-green-600 dark:text-green-400',
     dim: 'bg-green-50/50 dark:bg-green-900/10'
+  },
+  orange: {
+    bg: 'bg-orange-50 dark:bg-orange-900/20',
+    border: 'border-orange-500',
+    text: 'text-orange-600 dark:text-orange-400',
+    dim: 'bg-orange-50/50 dark:bg-orange-900/10'
+  },
+  pink: {
+    bg: 'bg-pink-50 dark:bg-pink-900/20',
+    border: 'border-pink-500',
+    text: 'text-pink-600 dark:text-pink-400',
+    dim: 'bg-pink-50/50 dark:bg-pink-900/10'
+  },
+  cyan: {
+    bg: 'bg-cyan-50 dark:bg-cyan-900/20',
+    border: 'border-cyan-500',
+    text: 'text-cyan-600 dark:text-cyan-400',
+    dim: 'bg-cyan-50/50 dark:bg-cyan-900/10'
   }
 }
 
@@ -92,8 +110,8 @@ export default function AIAgentCard({ agent, isMentioned }: AIAgentCardProps) {
           <h3 className={`font-semibold text-lg ${colors.text}`}>
             {agent.name}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-            {agent.role}
+          <p className="text-xs font-mono text-gray-600 dark:text-gray-400 mt-0.5">
+            {agent.model}
           </p>
         </div>
 

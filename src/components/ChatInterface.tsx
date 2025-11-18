@@ -1,11 +1,46 @@
 import { useEffect } from 'react'
 import { AI_AGENTS } from '@/lib/agents'
 import { useChatStore } from '@/lib/store'
+import { AgentColor } from '@/types'
 import AIAgentCard from './AIAgentCard'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import APIKeySettings from './APIKeySettings'
 import ModelSettings from './ModelSettings'
+
+// 颜色映射
+const colorMap: Record<AgentColor, { border: string; bg: string; text: string }> = {
+  blue: {
+    border: 'border-blue-500',
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    text: 'text-blue-600 dark:text-blue-400'
+  },
+  purple: {
+    border: 'border-purple-500',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
+    text: 'text-purple-600 dark:text-purple-400'
+  },
+  green: {
+    border: 'border-green-500',
+    bg: 'bg-green-50 dark:bg-green-900/20',
+    text: 'text-green-600 dark:text-green-400'
+  },
+  orange: {
+    border: 'border-orange-500',
+    bg: 'bg-orange-50 dark:bg-orange-900/20',
+    text: 'text-orange-600 dark:text-orange-400'
+  },
+  pink: {
+    border: 'border-pink-500',
+    bg: 'bg-pink-50 dark:bg-pink-900/20',
+    text: 'text-pink-600 dark:text-pink-400'
+  },
+  cyan: {
+    border: 'border-cyan-500',
+    bg: 'bg-cyan-50 dark:bg-cyan-900/20',
+    text: 'text-cyan-600 dark:text-cyan-400'
+  }
+}
 
 export default function ChatInterface() {
   const { currentMentions, error, reset, initializeAPIKey } = useChatStore()
@@ -73,17 +108,7 @@ export default function ChatInterface() {
               const agentState = useChatStore.getState().agents.get(agent.id)
               const status = agentState?.status || 'offline'
 
-              const borderColor = agent.color === 'blue' ? 'border-blue-500' :
-                                  agent.color === 'purple' ? 'border-purple-500' :
-                                  'border-green-500'
-
-              const bgColor = agent.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20' :
-                              agent.color === 'purple' ? 'bg-purple-50 dark:bg-purple-900/20' :
-                              'bg-green-50 dark:bg-green-900/20'
-
-              const textColor = agent.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                                agent.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
-                                'text-green-600 dark:text-green-400'
+              const colors = colorMap[agent.color]
 
               return (
                 <div
@@ -92,7 +117,7 @@ export default function ChatInterface() {
                     flex-shrink-0 w-20 lg:w-auto
                     rounded-lg border-2 p-2 lg:p-3 transition-all duration-300
                     ${isMentioned
-                      ? `${borderColor} ${bgColor} opacity-100`
+                      ? `${colors.border} ${colors.bg} opacity-100`
                       : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50'
                     }
                   `}
@@ -105,8 +130,8 @@ export default function ChatInterface() {
                       status === 'error' ? 'bg-red-500' :
                       'bg-gray-400'
                     }`} />
-                    <div className={`text-[11px] font-semibold truncate w-full ${textColor}`}>
-                      {agent.name.split(' ')[0]}
+                    <div className={`text-[11px] font-semibold truncate w-full ${colors.text}`}>
+                      {agent.name}
                     </div>
                     <div className="text-[9px] text-gray-500 dark:text-gray-400 font-mono">
                       {agent.mention}
@@ -116,7 +141,7 @@ export default function ChatInterface() {
                   {/* Desktop: Compact card view */}
                   <div className="hidden lg:flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <div className={`text-sm font-semibold ${textColor}`}>
+                      <div className={`text-sm font-semibold ${colors.text}`}>
                         {agent.name}
                       </div>
                       <div className={`w-2 h-2 rounded-full ${
