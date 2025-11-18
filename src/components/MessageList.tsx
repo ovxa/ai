@@ -6,6 +6,7 @@ import { highlightMentions } from '@/utils/mention'
 import { hasMarkdownSyntax, generateSummary } from '@/utils/markdown'
 import MarkdownRenderer from './MarkdownRenderer'
 import FullscreenMarkdown from './FullscreenMarkdown'
+import { useTranslation } from '@/lib/i18n'
 
 const colorClasses: Record<AgentColor, string> = {
   blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -39,6 +40,7 @@ function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
   const [isExpanded, setIsExpanded] = useState(false)
   const [showFullscreen, setShowFullscreen] = useState(false)
+  const t = useTranslation()
 
   // 获取当前流式输出状态
   const streamingAgentId = useChatStore(state => state.streamingAgentId)
@@ -47,6 +49,9 @@ function MessageBubble({ message }: { message: Message }) {
 
   // 判断当前消息是否正在流式输出
   const isStreaming = message.id === 'streaming' && streamingAgentId === message.agentId
+
+  // 判断是否在等待此AI的回复（用户刚发送消息后）
+  const isWaitingForResponse = !isUser && isLoading && !isStreaming && message.id !== 'streaming'
 
   // 检测是否包含 Markdown
   const hasMarkdown = hasMarkdownSyntax(message.content)
@@ -184,7 +189,7 @@ function MessageBubble({ message }: { message: Message }) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Generating...</span>
+                  <span>{t.generating}</span>
                 </div>
 
                 {/* Stop Generating 按钮 */}
@@ -194,20 +199,31 @@ function MessageBubble({ message }: { message: Message }) {
                     stopGeneration()
                   }}
                   className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
-                  title="停止生成"
+                  title={t.stop}
                 >
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                     <rect x="6" y="6" width="12" height="12" />
                   </svg>
-                  <span>Stop</span>
+                  <span>{t.stop}</span>
                 </button>
               </div>
             )}
 
-            {/* 字符计数 - 仅显示在AI回复且非生成中 */}
-            {!isUser && !isStreaming && (
-              <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500">
-                {message.content.length} response count
+            {/* 等待生成动画 - 在收到用户消息后显示 */}
+            {isWaitingForResponse && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{t.generating}</span>
+              </div>
+            )}
+
+            {/* 字符计数 - 仅在流式输出时显示 */}
+            {isStreaming && (
+              <div className="absolute bottom-2 left-2 text-xs text-gray-400 dark:text-gray-500">
+                {message.content.length} {t.responseCount}
               </div>
             )}
           </div>

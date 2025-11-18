@@ -4,14 +4,39 @@ import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import APIKeySettings from './APIKeySettings'
 import ModelSettings from './ModelSettings'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ChatInterface() {
   const { error, reset, initializeAPIKey } = useChatStore()
+  const t = useTranslation()
 
   // 初始化 API key（从 URL 或 localStorage）
   useEffect(() => {
     initializeAPIKey()
   }, [initializeAPIKey])
+
+  // 时间主题切换：9:01PM-5:59AM 黑色，6:00AM-9:00PM 白色
+  useEffect(() => {
+    const applyTimeBasedTheme = () => {
+      const hour = new Date().getHours()
+      // 21:01 (9:01 PM) - 5:59 (5:59 AM) 为黑色主题
+      const isDarkTime = hour >= 21 || hour < 6
+
+      if (isDarkTime) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    }
+
+    // 立即应用
+    applyTimeBasedTheme()
+
+    // 每分钟检查一次
+    const interval = setInterval(applyTimeBasedTheme, 60000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-2rem)]">
@@ -20,10 +45,10 @@ export default function ChatInterface() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              AI Trio Chat
+              {t.aiTrioChat}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              三 AI 协作助手 - 使用 @ 提及特定 AI
+              {t.subtitle}
             </p>
           </div>
 
@@ -36,12 +61,12 @@ export default function ChatInterface() {
               className="flex items-center gap-2 px-3 py-1.5 text-sm
                        bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
                        rounded-lg transition-colors"
-              title="清空对话"
+              title={t.clear}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              <span className="hidden sm:inline">清空</span>
+              <span className="hidden sm:inline">{t.clear}</span>
             </button>
           </div>
         </div>
