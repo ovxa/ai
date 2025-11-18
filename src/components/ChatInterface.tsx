@@ -5,6 +5,7 @@ import AIAgentCard from './AIAgentCard'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import APIKeySettings from './APIKeySettings'
+import ModelSettings from './ModelSettings'
 
 export default function ChatInterface() {
   const { currentMentions, error, reset, initializeAPIKey } = useChatStore()
@@ -33,6 +34,7 @@ export default function ChatInterface() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            <ModelSettings />
             <APIKeySettings />
             <button
               onClick={reset}

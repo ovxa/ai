@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { AgentId, AgentStatus, Message, AgentState } from '@/types'
-import { getAllAgentIds, getAgentById } from './agents'
+import { getAllAgentIds, getAgentById, initializeCustomModels } from './agents'
 import { parseMessage } from '@/utils/mention'
-import { callChatAPI, getAvailableAPIKey, saveAPIKey } from './api'
+import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint } from './api'
 
 interface ChatStore {
   // 状态
@@ -12,6 +12,7 @@ interface ChatStore {
   isLoading: boolean
   error: string | null
   apiKey: string | null // 当前使用的 API key
+  customEndpoint: string | null // 自定义 API endpoint
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -21,6 +22,7 @@ interface ChatStore {
   sendMessage: (content: string) => Promise<void>
   sendToSpecificAgents: (content: string, agentIds: AgentId[]) => Promise<void>
   setAPIKey: (key: string) => void
+  setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
   reset: () => void
 }
@@ -45,6 +47,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   isLoading: false,
   error: null,
   apiKey: null,
+  customEndpoint: null,
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -105,7 +108,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendToSpecificAgents: async (content, agentIds) => {
-    const { addMessage, setAgentStatus, apiKey } = get()
+    const { addMessage, setAgentStatus, apiKey, customEndpoint } = get()
 
     // 检查 API key
     if (!apiKey) {
@@ -137,7 +140,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 history: get().messages
               },
               agent,
-              apiKey
+              apiKey,
+              customEndpoint || undefined
             )
 
             return { agentId, content: response.content }
@@ -196,10 +200,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
+  setCustomEndpoint: (endpoint) => {
+    set({ customEndpoint: endpoint })
+  },
+
   initializeAPIKey: () => {
     const key = getAvailableAPIKey()
     if (key) {
       set({ apiKey: key })
+    }
+
+    // 初始化自定义模型配置
+    initializeCustomModels()
+
+    // 初始化自定义 endpoint
+    const endpoint = getCustomEndpoint()
+    if (endpoint) {
+      set({ customEndpoint: endpoint })
     }
   },
 
