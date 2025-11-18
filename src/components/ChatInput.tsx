@@ -3,6 +3,7 @@ import { AgentId } from '@/types'
 import { useChatStore } from '@/lib/store'
 import { detectMentionTrigger, getAutocompleteOptions, insertMention, parseMessage } from '@/utils/mention'
 import MentionAutocomplete from './MentionAutocomplete'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ChatInput() {
   const [input, setInput] = useState('')
@@ -14,6 +15,7 @@ export default function ChatInput() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { sendMessage, isLoading, agents, setCurrentMentions, clearCurrentMentions } = useChatStore()
+  const t = useTranslation()
 
   // 更新自动补全
   const updateAutocomplete = (text: string, cursorPosition: number) => {
@@ -172,7 +174,7 @@ export default function ChatInput() {
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="输入消息... (使用 @ 提及特定 AI)"
+            placeholder={t.inputPlaceholder}
             rows={1}
             className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
                      bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
@@ -183,7 +185,7 @@ export default function ChatInput() {
 
           {/* 提示文本 */}
           <div className="absolute bottom-1 right-2 text-xs text-gray-400 pointer-events-none">
-            Enter 发送 • Shift+Enter 换行
+            {t.sendHint}
           </div>
         </div>
 
@@ -195,7 +197,7 @@ export default function ChatInput() {
                    text-white font-medium rounded-lg transition-colors
                    disabled:cursor-not-allowed disabled:opacity-50"
         >
-          发送
+          {t.send}
         </button>
       </div>
     </div>
