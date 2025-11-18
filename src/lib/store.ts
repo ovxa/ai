@@ -190,7 +190,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }
         }
       } else {
-        // 并行执行：同时向多个 agents 发送
+        // 并行执行：同时向多个 agents 发送（禁用流式输出避免冲突）
         agentIds.forEach(id => setAgentStatus(id, 'typing'))
 
         const responses = await Promise.allSettled(
@@ -201,6 +201,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             }
 
             try {
+              // 并行模式下不使用流式输出，避免多个 AI 的输出互相覆盖
               const response = await callChatAPI(
                 {
                   agentId,
@@ -211,9 +212,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 agent,
                 apiKey,
                 customEndpoint || undefined,
-                (chunk) => {
-                  updateStreamingMessage(agentId, chunk)
-                }
+                undefined // 不传递流式回调
               )
 
               return { agentId, content: response.content }
@@ -229,15 +228,26 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           const agentId = agentIds[index]
 
           if (result.status === 'fulfilled') {
-            finalizeStreamingMessage()
+            // 成功：添加消息
+            const { addMessage } = get()
+            addMessage({
+              role: 'assistant',
+              content: result.value.content,
+              agentId
+            })
             setAgentStatus(agentId, 'online')
           } else {
+            // 失败：添加错误消息
             const errorMsg = result.reason instanceof Error
               ? result.reason.message
               : '抱歉，我现在无法回复。请稍后再试。'
 
-            updateStreamingMessage(agentId, errorMsg)
-            finalizeStreamingMessage()
+            const { addMessage } = get()
+            addMessage({
+              role: 'assistant',
+              content: errorMsg,
+              agentId
+            })
             setAgentStatus(agentId, 'error')
           }
         })

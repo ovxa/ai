@@ -7,7 +7,12 @@ import { AI_AGENTS, getAllAgentIds } from '@/lib/agents'
  * @returns 解析结果，包含提及的 Agent IDs、清理后的内容、是否为 @all
  */
 export function parseMessage(input: string): MentionParseResult {
-  const mentionRegex = /@(analyst|creator|evaluator|all)\b/gi
+  // 动态生成所有可能的 agent IDs
+  const allAgentIds = getAllAgentIds()
+  const agentIdsPattern = allAgentIds.join('|')
+
+  // 匹配 @agentId 或 @all
+  const mentionRegex = new RegExp(`@(${agentIdsPattern}|all)\\b`, 'gi')
   const matches = input.match(mentionRegex)
 
   if (!matches) {
@@ -30,7 +35,8 @@ export function parseMessage(input: string): MentionParseResult {
   } else {
     matches.forEach(match => {
       const id = match.slice(1).toLowerCase() as AgentId
-      if (id === 'analyst' || id === 'creator' || id === 'evaluator') {
+      // 验证是否是有效的 agent ID
+      if (allAgentIds.includes(id)) {
         mentions.add(id)
       }
     })
@@ -153,14 +159,17 @@ export function insertMention(
  * @returns 包含高亮标记的 HTML 字符串或 React 元素数组
  */
 export function highlightMentions(content: string): Array<{ type: 'text' | 'mention'; content: string; agentId?: AgentId }> {
-  const mentionRegex = /(@(?:analyst|creator|evaluator|all))\b/gi
+  // 动态生成所有可能的 agent IDs
+  const allAgentIds = getAllAgentIds()
+  const agentIdsPattern = allAgentIds.join('|')
+
+  const mentionRegex = new RegExp(`(@(?:${agentIdsPattern}|all))\\b`, 'gi')
   const parts: Array<{ type: 'text' | 'mention'; content: string; agentId?: AgentId }> = []
 
   let lastIndex = 0
   let match
 
-  const regex = new RegExp(mentionRegex)
-  while ((match = regex.exec(content)) !== null) {
+  while ((match = mentionRegex.exec(content)) !== null) {
     // 添加 mention 之前的文本
     if (match.index > lastIndex) {
       parts.push({
@@ -178,7 +187,7 @@ export function highlightMentions(content: string): Array<{ type: 'text' | 'ment
       agentId: agentId === 'all' ? undefined : agentId
     })
 
-    lastIndex = regex.lastIndex
+    lastIndex = mentionRegex.lastIndex
   }
 
   // 添加最后的文本
