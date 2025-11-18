@@ -22,12 +22,14 @@ const DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 /**
  * 客户端直接调用 AI API
  * 支持 OpenRouter 和自定义 API endpoints
+ * 支持流式输出
  */
 export async function callChatAPI(
   request: ChatAPIRequest,
   agent: AIAgent,
   apiKey: string,
-  customEndpoint?: string
+  customEndpoint?: string,
+  onStream?: (content: string) => void
 ): Promise<ChatAPIResponse> {
   if (!apiKey) {
     throw new Error('API key is required. Please add ?api=YOUR_KEY to the URL or set it in settings.')
@@ -35,15 +37,11 @@ export async function callChatAPI(
 
   const endpoint = customEndpoint || DEFAULT_ENDPOINT
 
-  // 构建消息历史
+  // 构建消息历史 - 移除system prompt，让AI之间可以互相看到对话
   const messages = [
-    {
-      role: 'system',
-      content: agent.systemPrompt
-    },
-    // 只包含最近的消息历史（最多 10 条）
+    // 只包含最近的消息历史（最多 20 条）
     ...(request.history || [])
-      .slice(-10)
+      .slice(-20)
       .map((msg: Message) => ({
         role: msg.role,
         content: msg.content
@@ -55,7 +53,7 @@ export async function callChatAPI(
   ]
 
   try {
-    // 调用 AI API
+    // 调用 AI API，启用流式输出
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -68,7 +66,8 @@ export async function callChatAPI(
         model: agent.model,
         messages,
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 2000,
+        stream: true // 启用流式输出
       })
     })
 
@@ -85,14 +84,51 @@ export async function callChatAPI(
       }
     }
 
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content
+    // 处理流式响应
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+    let fullContent = ''
 
-    if (!content) {
+    if (!reader) {
+      throw new Error('No response body')
+    }
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+      const lines = chunk.split('\n').filter(line => line.trim() !== '')
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6)
+          if (data === '[DONE]') continue
+
+          try {
+            const parsed = JSON.parse(data)
+            const content = parsed.choices?.[0]?.delta?.content
+
+            if (content) {
+              fullContent += content
+              // 调用流式回调
+              if (onStream) {
+                onStream(fullContent)
+              }
+            }
+          } catch (e) {
+            // 忽略解析错误
+            console.warn('Failed to parse SSE data:', data)
+          }
+        }
+      }
+    }
+
+    if (!fullContent) {
       throw new Error('No content in response')
     }
 
-    return { content }
+    return { content: fullContent }
   } catch (error) {
     if (error instanceof Error) {
       throw error

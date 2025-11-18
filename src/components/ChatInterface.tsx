@@ -60,34 +60,84 @@ export default function ChatInterface() {
         )}
       </div>
 
-      {/* Main layout: responsive grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100%-8rem)]">
-        {/* Left sidebar: AI Agents (desktop) / Top section (mobile) */}
-        <div className="lg:col-span-1 space-y-4 overflow-y-auto">
-          <div className="sticky top-0 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm py-2 px-1 rounded-lg">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              AI 助手
-            </h2>
-            <div className="space-y-3">
-              {AI_AGENTS.map(agent => {
-                const isMentioned = hasMentions
-                  ? currentMentions.includes(agent.id)
-                  : true // 如果没有提及，显示所有 agents
+      {/* Main content area */}
+      <div className="flex flex-col h-[calc(100%-10rem)] lg:h-[calc(100%-8rem)]">
+        {/* AI Agent Cards - Horizontal scroll on mobile, grid on desktop */}
+        <div className="mb-3">
+          <div className="flex lg:grid lg:grid-cols-3 gap-2 lg:gap-4 overflow-x-auto lg:overflow-x-visible pb-2">
+            {AI_AGENTS.map(agent => {
+              const isMentioned = hasMentions
+                ? currentMentions.includes(agent.id)
+                : true
 
-                return (
-                  <AIAgentCard
-                    key={agent.id}
-                    agent={agent}
-                    isMentioned={isMentioned}
-                  />
-                )
-              })}
-            </div>
+              const agentState = useChatStore.getState().agents.get(agent.id)
+              const status = agentState?.status || 'offline'
+
+              const borderColor = agent.color === 'blue' ? 'border-blue-500' :
+                                  agent.color === 'purple' ? 'border-purple-500' :
+                                  'border-green-500'
+
+              const bgColor = agent.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20' :
+                              agent.color === 'purple' ? 'bg-purple-50 dark:bg-purple-900/20' :
+                              'bg-green-50 dark:bg-green-900/20'
+
+              const textColor = agent.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                                agent.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
+                                'text-green-600 dark:text-green-400'
+
+              return (
+                <div
+                  key={agent.id}
+                  className={`
+                    flex-shrink-0 w-20 lg:w-auto
+                    rounded-lg border-2 p-2 lg:p-3 transition-all duration-300
+                    ${isMentioned
+                      ? `${borderColor} ${bgColor} opacity-100`
+                      : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-50'
+                    }
+                  `}
+                >
+                  {/* Mobile: Ultra-compact view */}
+                  <div className="lg:hidden flex flex-col items-center text-center gap-1">
+                    <div className={`w-2.5 h-2.5 rounded-full ${
+                      status === 'online' ? 'bg-green-500' :
+                      status === 'typing' ? 'bg-blue-500 animate-pulse' :
+                      status === 'error' ? 'bg-red-500' :
+                      'bg-gray-400'
+                    }`} />
+                    <div className={`text-[11px] font-semibold truncate w-full ${textColor}`}>
+                      {agent.name.split(' ')[0]}
+                    </div>
+                    <div className="text-[9px] text-gray-500 dark:text-gray-400 font-mono">
+                      {agent.mention}
+                    </div>
+                  </div>
+
+                  {/* Desktop: Compact card view */}
+                  <div className="hidden lg:flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className={`text-sm font-semibold ${textColor}`}>
+                        {agent.name}
+                      </div>
+                      <div className={`w-2 h-2 rounded-full ${
+                        status === 'online' ? 'bg-green-500' :
+                        status === 'typing' ? 'bg-blue-500 animate-pulse' :
+                        status === 'error' ? 'bg-red-500' :
+                        'bg-gray-400'
+                      }`} />
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                      {agent.mention}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
-        {/* Right: Chat area */}
-        <div className="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+        {/* Chat area - Takes remaining space */}
+        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
           {/* Messages */}
           <div className="flex-1 overflow-hidden">
             <MessageList />
