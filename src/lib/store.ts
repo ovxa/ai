@@ -13,14 +13,18 @@ interface ChatStore {
   error: string | null
   apiKey: string | null // 当前使用的 API key
   customEndpoint: string | null // 自定义 API endpoint
+  streamingAgentId: AgentId | null // 当前正在流式输出的 agent
+  streamingContent: string // 流式输出的内容
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
+  updateStreamingMessage: (agentId: AgentId, content: string) => void
+  finalizeStreamingMessage: () => void
   setAgentStatus: (agentId: AgentId, status: AgentStatus) => void
   setCurrentMentions: (mentions: AgentId[]) => void
   clearCurrentMentions: () => void
   sendMessage: (content: string) => Promise<void>
-  sendToSpecificAgents: (content: string, agentIds: AgentId[]) => Promise<void>
+  sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean) => Promise<void>
   setAPIKey: (key: string) => void
   setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
@@ -48,6 +52,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   error: null,
   apiKey: null,
   customEndpoint: null,
+  streamingAgentId: null,
+  streamingContent: '',
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -58,6 +64,28 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set(state => ({
       messages: [...state.messages, newMessage]
     }))
+  },
+
+  updateStreamingMessage: (agentId, content) => {
+    set({
+      streamingAgentId: agentId,
+      streamingContent: content
+    })
+  },
+
+  finalizeStreamingMessage: () => {
+    const { streamingAgentId, streamingContent, addMessage } = get()
+    if (streamingAgentId && streamingContent) {
+      addMessage({
+        role: 'assistant',
+        content: streamingContent,
+        agentId: streamingAgentId
+      })
+    }
+    set({
+      streamingAgentId: null,
+      streamingContent: ''
+    })
   },
 
   setAgentStatus: (agentId, status) => {
@@ -98,17 +126,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // 根据 mentions 决定发送策略
     if (mentions.length > 0) {
-      // 有 @mention：发送给指定的 agents
-      await sendToSpecificAgents(cleanContent, mentions)
+      // 有 @mention：并行发送给指定的 agents
+      await sendToSpecificAgents(cleanContent, mentions, false)
     } else {
-      // 无 @mention：按默认流程（sequential）
+      // 无 @mention：顺序执行（one by one）
       const allAgents = getAllAgentIds()
-      await sendToSpecificAgents(cleanContent, allAgents)
+      await sendToSpecificAgents(cleanContent, allAgents, true)
     }
   },
 
-  sendToSpecificAgents: async (content, agentIds) => {
-    const { addMessage, setAgentStatus, apiKey, customEndpoint } = get()
+  sendToSpecificAgents: async (content, agentIds, sequential = false) => {
+    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint } = get()
 
     // 检查 API key
     if (!apiKey) {
@@ -121,69 +149,102 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ isLoading: true, error: null })
 
     try {
-      // 设置所有目标 agents 为 typing 状态
-      agentIds.forEach(id => setAgentStatus(id, 'typing'))
+      if (sequential) {
+        // 顺序执行：one by one，每个AI等待上一个AI的回复
+        for (const agentId of agentIds) {
+          const agent = getAgentById(agentId)
+          if (!agent) {
+            console.error(`Agent ${agentId} not found`)
+            continue
+          }
 
-      // 并行请求所有指定的 agents
-      const responses = await Promise.allSettled(
-        agentIds.map(async (agentId) => {
+          setAgentStatus(agentId, 'typing')
+
           try {
+            const response = await callChatAPI(
+              {
+                agentId,
+                message: content,
+                history: get().messages // 实时获取最新的消息历史
+              },
+              agent,
+              apiKey,
+              customEndpoint || undefined,
+              (chunk) => {
+                // 流式更新回调
+                updateStreamingMessage(agentId, chunk)
+              }
+            )
+
+            // 完成流式输出
+            finalizeStreamingMessage()
+            setAgentStatus(agentId, 'online')
+          } catch (error) {
+            console.error(`Error from ${agentId}:`, error)
+            const errorMsg = error instanceof Error ? error.message : '抱歉，我现在无法回复。请稍后再试。'
+
+            updateStreamingMessage(agentId, errorMsg)
+            finalizeStreamingMessage()
+            setAgentStatus(agentId, 'error')
+          }
+        }
+      } else {
+        // 并行执行：同时向多个 agents 发送
+        agentIds.forEach(id => setAgentStatus(id, 'typing'))
+
+        const responses = await Promise.allSettled(
+          agentIds.map(async (agentId) => {
             const agent = getAgentById(agentId)
             if (!agent) {
               throw new Error(`Agent ${agentId} not found`)
             }
 
-            const response = await callChatAPI(
-              {
-                agentId,
-                message: content,
-                history: get().messages
-              },
-              agent,
-              apiKey,
-              customEndpoint || undefined
-            )
+            try {
+              const response = await callChatAPI(
+                {
+                  agentId,
+                  message: content,
+                  history: get().messages
+                },
+                agent,
+                apiKey,
+                customEndpoint || undefined,
+                (chunk) => {
+                  updateStreamingMessage(agentId, chunk)
+                }
+              )
 
-            return { agentId, content: response.content }
-          } catch (error) {
-            console.error(`Error from ${agentId}:`, error)
+              return { agentId, content: response.content }
+            } catch (error) {
+              setAgentStatus(agentId, 'error')
+              throw error
+            }
+          })
+        )
+
+        // 处理并行响应
+        responses.forEach((result, index) => {
+          const agentId = agentIds[index]
+
+          if (result.status === 'fulfilled') {
+            finalizeStreamingMessage()
+            setAgentStatus(agentId, 'online')
+          } else {
+            const errorMsg = result.reason instanceof Error
+              ? result.reason.message
+              : '抱歉，我现在无法回复。请稍后再试。'
+
+            updateStreamingMessage(agentId, errorMsg)
+            finalizeStreamingMessage()
             setAgentStatus(agentId, 'error')
-            throw error
           }
         })
-      )
 
-      // 处理响应
-      responses.forEach((result, index) => {
-        const agentId = agentIds[index]
-
-        if (result.status === 'fulfilled') {
-          // 成功：添加消息并设置为在线
-          addMessage({
-            role: 'assistant',
-            content: result.value.content,
-            agentId
-          })
-          setAgentStatus(agentId, 'online')
-        } else {
-          // 失败：添加错误消息
-          const errorMsg = result.reason instanceof Error
-            ? result.reason.message
-            : '抱歉，我现在无法回复。请稍后再试。'
-
-          addMessage({
-            role: 'assistant',
-            content: errorMsg,
-            agentId
-          })
-          setAgentStatus(agentId, 'error')
+        // 检查是否所有请求都失败了
+        const allFailed = responses.every(r => r.status === 'rejected')
+        if (allFailed) {
+          set({ error: '所有 AI 都无法响应，请检查 API Key 和网络连接' })
         }
-      })
-
-      // 检查是否所有请求都失败了
-      const allFailed = responses.every(r => r.status === 'rejected')
-      if (allFailed) {
-        set({ error: '所有 AI 都无法响应，请检查 API Key 和网络连接' })
       }
     } catch (error) {
       console.error('Send message error:', error)

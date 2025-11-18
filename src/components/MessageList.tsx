@@ -108,12 +108,14 @@ function MessageBubble({ message }: { message: Message }) {
 
 export default function MessageList() {
   const messages = useChatStore(state => state.messages)
+  const streamingAgentId = useChatStore(state => state.streamingAgentId)
+  const streamingContent = useChatStore(state => state.streamingContent)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // 自动滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamingContent])
 
   if (messages.length === 0) {
     return (
@@ -134,6 +136,20 @@ export default function MessageList() {
       {messages.map(message => (
         <MessageBubble key={message.id} message={message} />
       ))}
+
+      {/* 流式输出中的消息 */}
+      {streamingAgentId && streamingContent && (
+        <MessageBubble
+          message={{
+            id: 'streaming',
+            role: 'assistant',
+            content: streamingContent,
+            agentId: streamingAgentId,
+            timestamp: Date.now()
+          }}
+        />
+      )}
+
       <div ref={messagesEndRef} />
     </div>
   )
