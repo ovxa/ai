@@ -129,10 +129,12 @@ export default function ChatInput() {
     const trimmedInput = input.trim()
     if (!trimmedInput) return
 
+    // 立即清空输入框和提及列表
+    setInput('')
+    clearCurrentMentions()
+
     try {
       await sendMessage(trimmedInput)
-      setInput('')
-      clearCurrentMentions()
 
       // 重新聚焦输入框
       textareaRef.current?.focus()
