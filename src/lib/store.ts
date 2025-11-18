@@ -9,6 +9,7 @@ interface ChatStore {
   messages: Message[]
   agents: Map<AgentId, AgentState>
   currentMentions: AgentId[] // 当前消息提及的 agents
+  pendingAgents: AgentId[] // 等待回复的 agents（显示生成动画）
   isLoading: boolean
   error: string | null
   apiKey: string | null // 当前使用的 API key
@@ -50,6 +51,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   agents: initializeAgents(),
   currentMentions: [],
+  pendingAgents: [],
   isLoading: false,
   error: null,
   apiKey: null,
@@ -74,6 +76,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       streamingAgentId: agentId,
       streamingContent: content
     })
+    // 当AI开始流式输出时，从pendingAgents中移除
+    const { pendingAgents } = get()
+    if (pendingAgents.includes(agentId)) {
+      set({ pendingAgents: pendingAgents.filter(id => id !== agentId) })
+    }
   },
 
   finalizeStreamingMessage: () => {
@@ -156,7 +163,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return
     }
 
-    set({ isLoading: true, error: null })
+    set({ isLoading: true, error: null, pendingAgents: agentIds })
 
     // 判断是否有 @提及（通过检查最后一条用户消息）
     const lastUserMessage = messages[messages.length - 1]
@@ -284,7 +291,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       console.error('Send message error:', error)
       set({ error: '发送消息失败，请重试' })
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false, pendingAgents: [] })
     }
   },
 
@@ -295,6 +302,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       set({
         abortController: null,
         isLoading: false,
+        pendingAgents: [],
         streamingAgentId: null,
         streamingContent: ''
       })
@@ -333,6 +341,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       messages: [],
       agents: initializeAgents(),
       currentMentions: [],
+      pendingAgents: [],
       isLoading: false,
       error: null
     })
