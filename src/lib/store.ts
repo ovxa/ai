@@ -146,9 +146,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // 有 @mention：并行发送给指定的 agents，不过滤消息（能看到所有AI的回复）
       await sendToSpecificAgents(cleanContent, mentions, false, false)
     } else {
-      // 无 @mention：顺序执行（one by one），每个AI只看自己和用户的对话
+      // 无 @mention：并行执行，每个AI只看自己和用户的对话（过滤消息）
       const allAgents = getAllAgentIds()
-      await sendToSpecificAgents(cleanContent, allAgents, true, true)
+      await sendToSpecificAgents(cleanContent, allAgents, false, true)
     }
   },
 

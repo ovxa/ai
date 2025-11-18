@@ -6,13 +6,14 @@ export const metadata: Metadata = {
   description: '与三个专业 AI 助手协作：分析者、创意者、评估者',
   other: {
     // Content Security Policy to prevent XSS attacks
+    // Note: connect-src allows https: to support custom API endpoints
     'Content-Security-Policy': [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline and unsafe-eval
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
+      "connect-src 'self' https:", // Allow all HTTPS connections for custom API endpoints
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'"
@@ -34,7 +35,7 @@ export default function RootLayout({
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: https:",
           "font-src 'self' data:",
-          "connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
+          "connect-src 'self' https:", // Allow all HTTPS connections for custom API endpoints
           "frame-ancestors 'none'",
           "base-uri 'self'",
           "form-action 'self'"
