@@ -11,9 +11,11 @@ export default function ChatInterface() {
   const t = useTranslation()
 
   // 初始化 API key（从 URL 或 localStorage）
+  // 只在组件挂载时执行一次
   useEffect(() => {
     initializeAPIKey()
-  }, [initializeAPIKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 时间主题切换：9:01PM-5:59AM 黑色，6:00AM-9:00PM 白色
   useEffect(() => {

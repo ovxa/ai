@@ -44,15 +44,19 @@ function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TO
     } else {
       // 超过限制，总结剩余所有旧消息
       const oldMessages = messages.slice(0, i + 1)
-      const summary = summarizeMessages(oldMessages)
 
-      // 添加总结消息到开头
-      compressedMessages.unshift({
-        id: 'summary',
-        role: 'assistant',
-        content: `[历史消息总结]: ${summary}`,
-        timestamp: oldMessages[0]?.timestamp || Date.now()
-      })
+      // 边界检查：只在有旧消息时才添加总结
+      if (oldMessages.length > 0) {
+        const summary = summarizeMessages(oldMessages)
+
+        // 添加总结消息到开头
+        compressedMessages.unshift({
+          id: 'summary',
+          role: 'assistant',
+          content: `[历史消息总结]: ${summary}`,
+          timestamp: oldMessages[0].timestamp
+        })
+      }
 
       break
     }

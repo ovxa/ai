@@ -63,7 +63,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   addMessage: (message) => {
     const newMessage: Message = {
       ...message,
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       timestamp: Date.now()
     }
     set(state => ({
@@ -241,7 +241,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 agent,
                 apiKey,
                 customEndpoint || undefined,
-                undefined // 不传递流式回调
+                undefined, // 不传递流式回调
+                abortController?.signal // 添加 signal 以支持中断
               )
 
               return { agentId, content: response.content }

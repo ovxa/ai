@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AI_AGENTS, getCustomModels, saveCustomModels, resetModelsToDefault, addModel, removeModel, updateModel } from '@/lib/agents'
+import { getAgents, getCustomModels, saveCustomModels, resetModelsToDefault, addModel, removeModel, updateModel } from '@/lib/agents'
 import { saveCustomEndpoint, clearCustomEndpoint, getCustomEndpoint, getEndpointFromURL, fetchAvailableModels, extractModelShortName } from '@/lib/api'
 import { useChatStore } from '@/lib/store'
 
@@ -208,7 +208,7 @@ export default function ModelSettings() {
           <div className="space-y-3">
             {models.map((model, index) => {
               const shortName = extractModelShortName(model)
-              const agent = AI_AGENTS[index]
+              const agent = getAgents()[index]
 
               return (
                 <div key={index} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">

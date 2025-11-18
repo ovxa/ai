@@ -4,6 +4,20 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'AI Trio Chat - 三 AI 协作助手',
   description: '与三个专业 AI 助手协作：分析者、创意者、评估者',
+  other: {
+    // Content Security Policy to prevent XSS attacks
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline and unsafe-eval
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https:",
+      "font-src 'self' data:",
+      "connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'"
+    ].join('; ')
+  }
 }
 
 export default function RootLayout({
@@ -13,6 +27,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
+      <head>
+        <meta httpEquiv="Content-Security-Policy" content={[
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https:",
+          "font-src 'self' data:",
+          "connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
+          "frame-ancestors 'none'",
+          "base-uri 'self'",
+          "form-action 'self'"
+        ].join('; ')} />
+      </head>
       <body>{children}</body>
     </html>
   )
