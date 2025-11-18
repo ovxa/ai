@@ -120,7 +120,8 @@ export async function callChatAPI(
   agent: AIAgent,
   apiKey: string,
   customEndpoint?: string,
-  onStream?: (content: string) => void
+  onStream?: (content: string) => void,
+  signal?: AbortSignal
 ): Promise<ChatAPIResponse> {
   if (!apiKey) {
     throw new Error('API key is required. Please add ?api=YOUR_KEY to the URL or set it in settings.')
@@ -169,7 +170,8 @@ export async function callChatAPI(
         temperature: 0.7,
         max_tokens: 2000,
         stream: true // 启用流式输出
-      })
+      }),
+      signal // 传递 AbortSignal 以支持中断请求
     })
 
     if (!response.ok) {
@@ -195,6 +197,12 @@ export async function callChatAPI(
     }
 
     while (true) {
+      // 检查是否已中止
+      if (signal?.aborted) {
+        reader.cancel()
+        throw new Error('Request aborted')
+      }
+
       const { done, value } = await reader.read()
       if (done) break
 
@@ -231,6 +239,10 @@ export async function callChatAPI(
 
     return { content: fullContent }
   } catch (error) {
+    // 处理中止错误
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('生成已停止')
+    }
     if (error instanceof Error) {
       throw error
     }

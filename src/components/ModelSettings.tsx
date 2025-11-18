@@ -12,6 +12,7 @@ export default function ModelSettings() {
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [loadingModels, setLoadingModels] = useState(false)
   const [showModelPicker, setShowModelPicker] = useState<number | null>(null)
+  const [modelSearchQuery, setModelSearchQuery] = useState('')
 
   // URL 中的 endpoint
   const urlEndpoint = getEndpointFromURL()
@@ -80,7 +81,14 @@ export default function ModelSettings() {
   const handleSelectModel = (index: number, model: string) => {
     handleUpdateModel(index, model)
     setShowModelPicker(null)
+    setModelSearchQuery('')
   }
+
+  // 过滤可用模型
+  const filteredModels = availableModels.filter(model =>
+    model.toLowerCase().includes(modelSearchQuery.toLowerCase()) ||
+    extractModelShortName(model).toLowerCase().includes(modelSearchQuery.toLowerCase())
+  )
 
   const handleReset = () => {
     resetModelsToDefault()
@@ -249,18 +257,41 @@ export default function ModelSettings() {
 
                   {/* Model Picker Dropdown */}
                   {showModelPicker === index && availableModels.length > 0 && (
-                    <div className="mt-2 max-h-40 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
-                      {availableModels.map((availableModel) => (
-                        <button
-                          key={availableModel}
-                          onClick={() => handleSelectModel(index, availableModel)}
-                          className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-blue-50 dark:hover:bg-blue-900/30
-                                   text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-                        >
-                          <div className="font-semibold">{extractModelShortName(availableModel)}</div>
-                          <div className="text-gray-500 dark:text-gray-400 text-[10px]">{availableModel}</div>
-                        </button>
-                      ))}
+                    <div className="mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                      {/* 搜索框 */}
+                      <div className="p-2 border-b border-gray-300 dark:border-gray-600">
+                        <input
+                          type="text"
+                          value={modelSearchQuery}
+                          onChange={(e) => setModelSearchQuery(e.target.value)}
+                          placeholder="搜索模型..."
+                          className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded
+                                   bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
+                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          autoFocus
+                        />
+                      </div>
+
+                      {/* 模型列表 */}
+                      <div className="max-h-40 overflow-y-auto">
+                        {filteredModels.length > 0 ? (
+                          filteredModels.map((availableModel) => (
+                            <button
+                              key={availableModel}
+                              onClick={() => handleSelectModel(index, availableModel)}
+                              className="w-full text-left px-3 py-2 text-xs font-mono hover:bg-blue-50 dark:hover:bg-blue-900/30
+                                       text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                            >
+                              <div className="font-semibold">{extractModelShortName(availableModel)}</div>
+                              <div className="text-gray-500 dark:text-gray-400 text-[10px]">{availableModel}</div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                            未找到匹配的模型
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
