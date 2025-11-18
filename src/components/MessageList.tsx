@@ -90,7 +90,7 @@ function MessageBubble({ message }: { message: Message }) {
           {/* 消息气泡 */}
           <div
             className={`
-              rounded-lg px-4 py-3 break-words transition-all relative
+              rounded-lg px-4 py-3 pb-8 break-words transition-all relative
               ${shouldCollapse ? 'cursor-pointer hover:shadow-lg' : ''}
               ${isUser
                 ? 'bg-blue-500 text-white'
@@ -101,27 +101,6 @@ function MessageBubble({ message }: { message: Message }) {
             `}
             onClick={handleClick}
           >
-            {/* 加载动画和停止按钮 - 仅在折叠且正在加载时显示 */}
-            {isCollapsed && isStreaming && (
-              <div className="absolute top-3 right-3 flex items-center gap-2">
-                {/* 加载圆圈 */}
-                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-
-                {/* 停止按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    stopGeneration()
-                  }}
-                  className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
-                  title="停止生成"
-                >
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="6" y="6" width="12" height="12" />
-                  </svg>
-                </button>
-              </div>
-            )}
             {/* 显示提及的 agents（仅用户消息） */}
             {isUser && message.mentions && message.mentions.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2 pb-2 border-b border-white/20">
@@ -193,6 +172,42 @@ function MessageBubble({ message }: { message: Message }) {
                   }
                   return <span key={index}>{part.content}</span>
                 })}
+              </div>
+            )}
+
+            {/* 生成中动画和停止按钮 - 显示在右下角 */}
+            {isStreaming && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                {/* Generating SVG 动画 */}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Generating...</span>
+                </div>
+
+                {/* Stop Generating 按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    stopGeneration()
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                  title="停止生成"
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                  <span>Stop</span>
+                </button>
+              </div>
+            )}
+
+            {/* 字符计数 - 仅显示在AI回复且非生成中 */}
+            {!isUser && !isStreaming && (
+              <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500">
+                {message.content.length} response count
               </div>
             )}
           </div>

@@ -146,7 +146,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false) => {
-    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, abortController } = get()
+    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, abortController, messages } = get()
 
     // 检查 API key
     if (!apiKey) {
@@ -157,6 +157,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
 
     set({ isLoading: true, error: null })
+
+    // 判断是否有 @提及（通过检查最后一条用户消息）
+    const lastUserMessage = messages[messages.length - 1]
+    const isMentioned = lastUserMessage?.mentions && lastUserMessage.mentions.length > 0
 
     try {
       if (sequential) {
@@ -181,7 +185,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 agentId,
                 message: content,
                 history: get().messages, // 实时获取最新的消息历史
-                filterByAgent // 传递过滤参数
+                filterByAgent, // 传递过滤参数
+                isMentioned // 传递是否被 @提及
               },
               agent,
               apiKey,
@@ -223,7 +228,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                   agentId,
                   message: content,
                   history: get().messages,
-                  filterByAgent // 传递过滤参数
+                  filterByAgent, // 传递过滤参数
+                  isMentioned // 传递是否被 @提及
                 },
                 agent,
                 apiKey,

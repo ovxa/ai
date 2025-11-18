@@ -8,6 +8,7 @@ export interface ChatAPIRequest {
   message: string
   history?: Message[]
   filterByAgent?: boolean // 是否过滤只显示该 agent 自己的消息
+  isMentioned?: boolean // 是否被 @提及（用于上下文压缩策略）
 }
 
 export interface ChatAPIResponse {
@@ -21,12 +22,13 @@ export interface APIEndpoint {
 }
 
 const DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
-const MAX_CONTEXT_TOKENS = 200000 // 最大上下文 tokens
+const MAX_CONTEXT_TOKENS = 200000 // 最大上下文 tokens（无@时）
+const MAX_MENTION_CONTEXT_TOKENS = 20000 // @提及时的最大上下文 tokens
 
 /**
  * 压缩消息历史，保留最近的消息，旧消息总结
  */
-function compressHistory(messages: Message[]): Message[] {
+function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TOKENS): Message[] {
   // 估算总 tokens
   let totalTokens = 0
   const compressedMessages: Message[] = []
@@ -36,7 +38,7 @@ function compressHistory(messages: Message[]): Message[] {
     const msg = messages[i]
     const msgTokens = estimateTokens(msg.content)
 
-    if (totalTokens + msgTokens < MAX_CONTEXT_TOKENS) {
+    if (totalTokens + msgTokens < maxTokens) {
       compressedMessages.unshift(msg)
       totalTokens += msgTokens
     } else {
@@ -140,8 +142,10 @@ export async function callChatAPI(
     )
   }
 
-  // 压缩历史消息（超过 200K tokens 时自动总结）
-  const compressedHistory = compressHistory(historyMessages)
+  // 压缩历史消息
+  // 如果被 @提及，使用 20K 限制；否则使用 200K 限制
+  const maxTokens = request.isMentioned ? MAX_MENTION_CONTEXT_TOKENS : MAX_CONTEXT_TOKENS
+  const compressedHistory = compressHistory(historyMessages, maxTokens)
 
   const messages = [
     // 使用压缩后的消息历史，给 AI 消息添加名字标识
@@ -182,7 +186,6 @@ export async function callChatAPI(
         model: agent.model,
         messages,
         temperature: 0.7,
-        max_tokens: 2000,
         stream: true // 启用流式输出
       }),
       signal // 传递 AbortSignal 以支持中断请求
