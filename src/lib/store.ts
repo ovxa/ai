@@ -24,7 +24,7 @@ interface ChatStore {
   setCurrentMentions: (mentions: AgentId[]) => void
   clearCurrentMentions: () => void
   sendMessage: (content: string) => Promise<void>
-  sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean) => Promise<void>
+  sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean) => Promise<void>
   setAPIKey: (key: string) => void
   setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
@@ -126,16 +126,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // 根据 mentions 决定发送策略
     if (mentions.length > 0) {
-      // 有 @mention：并行发送给指定的 agents
-      await sendToSpecificAgents(cleanContent, mentions, false)
+      // 有 @mention：并行发送给指定的 agents，不过滤消息（能看到所有AI的回复）
+      await sendToSpecificAgents(cleanContent, mentions, false, false)
     } else {
-      // 无 @mention：顺序执行（one by one）
+      // 无 @mention：顺序执行（one by one），每个AI只看自己和用户的对话
       const allAgents = getAllAgentIds()
-      await sendToSpecificAgents(cleanContent, allAgents, true)
+      await sendToSpecificAgents(cleanContent, allAgents, true, true)
     }
   },
 
-  sendToSpecificAgents: async (content, agentIds, sequential = false) => {
+  sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false) => {
     const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint } = get()
 
     // 检查 API key
@@ -165,7 +165,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               {
                 agentId,
                 message: content,
-                history: get().messages // 实时获取最新的消息历史
+                history: get().messages, // 实时获取最新的消息历史
+                filterByAgent // 传递过滤参数
               },
               agent,
               apiKey,
@@ -204,7 +205,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 {
                   agentId,
                   message: content,
-                  history: get().messages
+                  history: get().messages,
+                  filterByAgent // 传递过滤参数
                 },
                 agent,
                 apiKey,

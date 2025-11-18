@@ -1,13 +1,34 @@
 import { useEffect, useRef } from 'react'
-import { Message } from '@/types'
+import { Message, AgentColor } from '@/types'
 import { useChatStore } from '@/lib/store'
 import { getAgentById } from '@/lib/agents'
 import { highlightMentions } from '@/utils/mention'
 
-const colorClasses = {
+const colorClasses: Record<AgentColor, string> = {
   blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+  pink: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+  cyan: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
+}
+
+const bgColorClasses: Record<AgentColor, string> = {
+  blue: 'bg-blue-50 dark:bg-blue-900/30',
+  purple: 'bg-purple-50 dark:bg-purple-900/30',
+  green: 'bg-green-50 dark:bg-green-900/30',
+  orange: 'bg-orange-50 dark:bg-orange-900/30',
+  pink: 'bg-pink-50 dark:bg-pink-900/30',
+  cyan: 'bg-cyan-50 dark:bg-cyan-900/30',
+}
+
+const dotColorClasses: Record<AgentColor, string> = {
+  blue: 'bg-blue-500',
+  purple: 'bg-purple-500',
+  green: 'bg-green-500',
+  orange: 'bg-orange-500',
+  pink: 'bg-pink-500',
+  cyan: 'bg-cyan-500',
 }
 
 function MessageBubble({ message }: { message: Message }) {
@@ -23,11 +44,7 @@ function MessageBubble({ message }: { message: Message }) {
         {/* 发送者信息 */}
         {!isUser && agent && (
           <div className="flex items-center gap-2 mb-1 px-1">
-            <div className={`w-2 h-2 rounded-full ${
-              agent.color === 'blue' ? 'bg-blue-500' :
-              agent.color === 'purple' ? 'bg-purple-500' :
-              'bg-green-500'
-            }`} />
+            <div className={`w-2 h-2 rounded-full ${dotColorClasses[agent.color]}`} />
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
               {agent.name}
             </span>
@@ -40,9 +57,7 @@ function MessageBubble({ message }: { message: Message }) {
           ${isUser
             ? 'bg-blue-500 text-white'
             : agent
-              ? agent.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/30 text-gray-900 dark:text-gray-100'
-                : agent.color === 'purple' ? 'bg-purple-50 dark:bg-purple-900/30 text-gray-900 dark:text-gray-100'
-                : 'bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100'
+              ? `${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100`
               : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
           }
         `}>

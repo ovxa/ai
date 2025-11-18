@@ -5,6 +5,7 @@ export interface ChatAPIRequest {
   agentId: string
   message: string
   history?: Message[]
+  filterByAgent?: boolean // 是否过滤只显示该 agent 自己的消息
 }
 
 export interface ChatAPIResponse {
@@ -37,10 +38,19 @@ export async function callChatAPI(
 
   const endpoint = customEndpoint || DEFAULT_ENDPOINT
 
-  // 构建消息历史 - 移除system prompt，让AI之间可以互相看到对话
+  // 构建消息历史
+  let historyMessages = request.history || []
+
+  // 如果需要过滤，只保留该 agent 自己的消息和用户的消息
+  if (request.filterByAgent) {
+    historyMessages = historyMessages.filter(
+      msg => msg.role === 'user' || msg.agentId === request.agentId
+    )
+  }
+
   const messages = [
     // 只包含最近的消息历史（最多 20 条）
-    ...(request.history || [])
+    ...historyMessages
       .slice(-20)
       .map((msg: Message) => ({
         role: msg.role,
@@ -223,10 +233,26 @@ export function saveCustomEndpoint(endpoint: string): void {
 }
 
 /**
+ * 从 URL 参数获取 API endpoint
+ */
+export function getEndpointFromURL(): string | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  return params.get('endpoint')
+}
+
+/**
  * 获取自定义 API endpoint
+ * 优先级：URL 参数 > localStorage
  */
 export function getCustomEndpoint(): string | null {
   if (typeof window === 'undefined') return null
+
+  // 优先从 URL 获取
+  const urlEndpoint = getEndpointFromURL()
+  if (urlEndpoint) return urlEndpoint
+
+  // 其次从 localStorage 获取
   return localStorage.getItem('custom_api_endpoint')
 }
 
@@ -236,4 +262,78 @@ export function getCustomEndpoint(): string | null {
 export function clearCustomEndpoint(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem('custom_api_endpoint')
+}
+
+/**
+ * 从 API 获取可用模型列表
+ */
+export async function fetchAvailableModels(
+  apiKey: string,
+  endpoint?: string
+): Promise<string[]> {
+  const baseEndpoint = endpoint || DEFAULT_ENDPOINT
+  // 从 chat/completions endpoint 转换为 models endpoint
+  const modelsEndpoint = baseEndpoint
+    .replace('/chat/completions', '/models')
+    .replace('/v1/chat/completions', '/v1/models')
+    .replace('/api/v1/chat/completions', '/api/v1/models')
+
+  try {
+    const response = await fetch(modelsEndpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`)
+    }
+
+    const data = await response.json()
+    // OpenRouter 返回 { data: [{ id: "model-name" }] }
+    if (data.data && Array.isArray(data.data)) {
+      return data.data.map((model: any) => model.id)
+    }
+
+    return []
+  } catch (error) {
+    console.error('Error fetching models:', error)
+    return []
+  }
+}
+
+/**
+ * 从模型全称提取简称
+ * 例如: "anthropic/claude-sonnet-4.5" => "Sonnet"
+ *      "openai/gpt-5" => "GPT"
+ *      "google/gemini-2.5-pro" => "Gemini"
+ */
+export function extractModelShortName(fullModelName: string): string {
+  // 移除前缀（提供商/）
+  const withoutProvider = fullModelName.split('/').pop() || fullModelName
+
+  // 提取主要名称
+  if (withoutProvider.includes('claude')) {
+    // claude-3-sonnet, claude-sonnet-4.5 => Sonnet
+    if (withoutProvider.includes('sonnet')) return 'Sonnet'
+    if (withoutProvider.includes('opus')) return 'Opus'
+    if (withoutProvider.includes('haiku')) return 'Haiku'
+    return 'Claude'
+  } else if (withoutProvider.includes('gpt')) {
+    // gpt-4, gpt-5, gpt-4-turbo => GPT
+    return 'GPT'
+  } else if (withoutProvider.includes('gemini')) {
+    // gemini-pro, gemini-2.5-pro => Gemini
+    return 'Gemini'
+  } else if (withoutProvider.includes('llama')) {
+    return 'Llama'
+  } else if (withoutProvider.includes('mistral')) {
+    return 'Mistral'
+  }
+
+  // 如果无法识别，返回首个单词并大写首字母
+  const firstWord = withoutProvider.split('-')[0]
+  return firstWord.charAt(0).toUpperCase() + firstWord.slice(1)
 }
