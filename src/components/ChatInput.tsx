@@ -127,7 +127,7 @@ export default function ChatInput() {
   // 提交消息
   const handleSubmit = async () => {
     const trimmedInput = input.trim()
-    if (!trimmedInput || isLoading) return
+    if (!trimmedInput) return
 
     try {
       await sendMessage(trimmedInput)
@@ -171,38 +171,29 @@ export default function ChatInput() {
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="输入消息... (使用 @ 提及特定 AI)"
-            disabled={isLoading}
             rows={1}
             className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
                      bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
                      focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                     disabled:opacity-50 disabled:cursor-not-allowed
                      resize-none overflow-y-auto"
             style={{ maxHeight: '200px' }}
           />
 
           {/* 提示文本 */}
           <div className="absolute bottom-1 right-2 text-xs text-gray-400 pointer-events-none">
-            {isLoading ? '发送中...' : 'Enter 发送 • Shift+Enter 换行'}
+            Enter 发送 • Shift+Enter 换行
           </div>
         </div>
 
         {/* 发送按钮 */}
         <button
           onClick={handleSubmit}
-          disabled={!input.trim() || isLoading}
+          disabled={!input.trim()}
           className="px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400
                    text-white font-medium rounded-lg transition-colors
                    disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>发送中</span>
-            </div>
-          ) : (
-            '发送'
-          )}
+          发送
         </button>
       </div>
     </div>
