@@ -1,0 +1,140 @@
+import { useEffect, useRef } from 'react'
+import { Message } from '@/types'
+import { useChatStore } from '@/lib/store'
+import { getAgentById } from '@/lib/agents'
+import { highlightMentions } from '@/utils/mention'
+
+const colorClasses = {
+  blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+}
+
+function MessageBubble({ message }: { message: Message }) {
+  const agent = message.agentId ? getAgentById(message.agentId) : null
+  const isUser = message.role === 'user'
+
+  // 高亮显示 @mentions
+  const parts = highlightMentions(message.content)
+
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div className={`max-w-[80%] ${isUser ? 'order-2' : 'order-1'}`}>
+        {/* 发送者信息 */}
+        {!isUser && agent && (
+          <div className="flex items-center gap-2 mb-1 px-1">
+            <div className={`w-2 h-2 rounded-full ${
+              agent.color === 'blue' ? 'bg-blue-500' :
+              agent.color === 'purple' ? 'bg-purple-500' :
+              'bg-green-500'
+            }`} />
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {agent.name}
+            </span>
+          </div>
+        )}
+
+        {/* 消息气泡 */}
+        <div className={`
+          rounded-lg px-4 py-3 break-words
+          ${isUser
+            ? 'bg-blue-500 text-white'
+            : agent
+              ? agent.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/30 text-gray-900 dark:text-gray-100'
+                : agent.color === 'purple' ? 'bg-purple-50 dark:bg-purple-900/30 text-gray-900 dark:text-gray-100'
+                : 'bg-green-50 dark:bg-green-900/30 text-gray-900 dark:text-gray-100'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+          }
+        `}>
+          {/* 显示提及的 agents（仅用户消息） */}
+          {isUser && message.mentions && message.mentions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2 pb-2 border-b border-white/20">
+              {message.mentions.map(mentionId => {
+                const mentionedAgent = getAgentById(mentionId)
+                return mentionedAgent ? (
+                  <span
+                    key={mentionId}
+                    className="text-xs px-2 py-0.5 rounded bg-white/20 backdrop-blur-sm"
+                  >
+                    {mentionedAgent.mention}
+                  </span>
+                ) : null
+              })}
+            </div>
+          )}
+
+          {/* 消息内容 */}
+          <div className="whitespace-pre-wrap">
+            {parts.map((part, index) => {
+              if (part.type === 'mention') {
+                const mentionedAgent = part.agentId ? getAgentById(part.agentId) : null
+                const colorClass = mentionedAgent
+                  ? colorClasses[mentionedAgent.color]
+                  : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+
+                return (
+                  <span
+                    key={index}
+                    className={`inline-block px-1.5 py-0.5 rounded text-sm font-medium ${
+                      part.content === '@all'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                        : isUser
+                          ? 'bg-white/30 text-white'
+                          : colorClass
+                    }`}
+                  >
+                    {part.content}
+                  </span>
+                )
+              }
+              return <span key={index}>{part.content}</span>
+            })}
+          </div>
+        </div>
+
+        {/* 时间戳 */}
+        <div className={`text-xs text-gray-500 dark:text-gray-500 mt-1 px-1 ${
+          isUser ? 'text-right' : 'text-left'
+        }`}>
+          {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function MessageList() {
+  const messages = useChatStore(state => state.messages)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // 自动滚动到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+        <div className="text-center">
+          <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <p className="text-lg font-medium">开始对话</p>
+          <p className="text-sm mt-2">使用 @ 提及特定 AI，或直接发送消息</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full overflow-y-auto px-4 py-6">
+      {messages.map(message => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
+      <div ref={messagesEndRef} />
+    </div>
+  )
+}

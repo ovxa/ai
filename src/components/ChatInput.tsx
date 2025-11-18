@@ -1,0 +1,210 @@
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react'
+import { AgentId } from '@/types'
+import { useChatStore } from '@/lib/store'
+import { detectMentionTrigger, getAutocompleteOptions, insertMention, parseMessage } from '@/utils/mention'
+import MentionAutocomplete from './MentionAutocomplete'
+
+export default function ChatInput() {
+  const [input, setInput] = useState('')
+  const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [autocompleteOptions, setAutocompleteOptions] = useState<ReturnType<typeof getAutocompleteOptions>>([])
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0)
+  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 })
+  const [mentionTrigger, setMentionTrigger] = useState<{ start: number; search: string } | null>(null)
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { sendMessage, isLoading, agents, setCurrentMentions, clearCurrentMentions } = useChatStore()
+
+  // 更新自动补全
+  const updateAutocomplete = (text: string, cursorPosition: number) => {
+    const trigger = detectMentionTrigger(text, cursorPosition)
+    setMentionTrigger(trigger)
+
+    if (trigger) {
+      const agentStatesMap = new Map(
+        Array.from(agents.entries()).map(([id, state]) => [id, state.status])
+      )
+      const options = getAutocompleteOptions(trigger.search, agentStatesMap)
+      setAutocompleteOptions(options)
+      setShowAutocomplete(options.length > 0)
+      setSelectedOptionIndex(0)
+
+      // 计算自动补全位置
+      if (textareaRef.current) {
+        const textarea = textareaRef.current
+        const rect = textarea.getBoundingClientRect()
+
+        // 简化定位：显示在输入框上方
+        setAutocompletePosition({
+          top: rect.top - 10,
+          left: rect.left
+        })
+      }
+    } else {
+      setShowAutocomplete(false)
+    }
+  }
+
+  // 处理输入变化
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value
+    setInput(newValue)
+
+    const cursorPosition = e.target.selectionStart
+    updateAutocomplete(newValue, cursorPosition)
+
+    // 更新当前提及的 agents
+    const { mentions } = parseMessage(newValue)
+    setCurrentMentions(mentions)
+  }
+
+  // 处理键盘事件
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showAutocomplete) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedOptionIndex(prev =>
+          prev < autocompleteOptions.length - 1 ? prev + 1 : prev
+        )
+        return
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedOptionIndex(prev => (prev > 0 ? prev - 1 : prev))
+        return
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        handleSelectOption(autocompleteOptions[selectedOptionIndex])
+        return
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setShowAutocomplete(false)
+        return
+      }
+    }
+
+    // 非自动补全状态下，Enter 发送消息（Shift+Enter 换行）
+    if (e.key === 'Enter' && !e.shiftKey && !showAutocomplete) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
+
+  // 选择自动补全选项
+  const handleSelectOption = (option: typeof autocompleteOptions[0]) => {
+    if (!mentionTrigger || !textareaRef.current) return
+
+    const mentionId = option.id
+    const { newText, newCursorPosition } = insertMention(
+      input,
+      mentionId,
+      mentionTrigger.start,
+      textareaRef.current.selectionStart
+    )
+
+    setInput(newText)
+    setShowAutocomplete(false)
+
+    // 设置光标位置
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = newCursorPosition
+        textareaRef.current.selectionEnd = newCursorPosition
+        textareaRef.current.focus()
+
+        // 更新提及列表
+        const { mentions } = parseMessage(newText)
+        setCurrentMentions(mentions)
+      }
+    }, 0)
+  }
+
+  // 提交消息
+  const handleSubmit = async () => {
+    const trimmedInput = input.trim()
+    if (!trimmedInput || isLoading) return
+
+    try {
+      await sendMessage(trimmedInput)
+      setInput('')
+      clearCurrentMentions()
+
+      // 重新聚焦输入框
+      textareaRef.current?.focus()
+    } catch (error) {
+      console.error('Failed to send message:', error)
+    }
+  }
+
+  // 自动调整 textarea 高度
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+    }
+  }, [input])
+
+  return (
+    <div className="relative">
+      {/* 自动补全弹窗 */}
+      {showAutocomplete && (
+        <MentionAutocomplete
+          options={autocompleteOptions}
+          selectedIndex={selectedOptionIndex}
+          onSelect={handleSelectOption}
+          onClose={() => setShowAutocomplete(false)}
+          position={autocompletePosition}
+        />
+      )}
+
+      {/* 输入框 */}
+      <div className="flex gap-2 items-end">
+        <div className="flex-1 relative">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="输入消息... (使用 @ 提及特定 AI)"
+            disabled={isLoading}
+            rows={1}
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
+                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     disabled:opacity-50 disabled:cursor-not-allowed
+                     resize-none overflow-y-auto"
+            style={{ maxHeight: '200px' }}
+          />
+
+          {/* 提示文本 */}
+          <div className="absolute bottom-1 right-2 text-xs text-gray-400 pointer-events-none">
+            {isLoading ? '发送中...' : 'Enter 发送 • Shift+Enter 换行'}
+          </div>
+        </div>
+
+        {/* 发送按钮 */}
+        <button
+          onClick={handleSubmit}
+          disabled={!input.trim() || isLoading}
+          className="px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400
+                   text-white font-medium rounded-lg transition-colors
+                   disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>发送中</span>
+            </div>
+          ) : (
+            '发送'
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
