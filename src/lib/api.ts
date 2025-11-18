@@ -11,18 +11,29 @@ export interface ChatAPIResponse {
   content: string
 }
 
+export interface APIEndpoint {
+  url: string
+  key: string
+  name?: string
+}
+
+const DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
+
 /**
- * 客户端直接调用 OpenRouter API
- * 支持从 URL 参数或 localStorage 获取 API key
+ * 客户端直接调用 AI API
+ * 支持 OpenRouter 和自定义 API endpoints
  */
 export async function callChatAPI(
   request: ChatAPIRequest,
   agent: AIAgent,
-  apiKey: string
+  apiKey: string,
+  customEndpoint?: string
 ): Promise<ChatAPIResponse> {
   if (!apiKey) {
     throw new Error('API key is required. Please add ?api=YOUR_KEY to the URL or set it in settings.')
   }
+
+  const endpoint = customEndpoint || DEFAULT_ENDPOINT
 
   // 构建消息历史
   const messages = [
@@ -44,8 +55,8 @@ export async function callChatAPI(
   ]
 
   try {
-    // 调用 OpenRouter API
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // 调用 AI API
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -63,7 +74,7 @@ export async function callChatAPI(
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('OpenRouter API error:', errorText)
+      console.error('API error:', errorText)
 
       if (response.status === 401) {
         throw new Error('Invalid API key. Please check your API key.')
@@ -165,4 +176,28 @@ export function getAllAPIKeys(): string[] {
   }
 
   return Array.from(keys)
+}
+
+/**
+ * 保存自定义 API endpoint
+ */
+export function saveCustomEndpoint(endpoint: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem('custom_api_endpoint', endpoint)
+}
+
+/**
+ * 获取自定义 API endpoint
+ */
+export function getCustomEndpoint(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('custom_api_endpoint')
+}
+
+/**
+ * 清除自定义 API endpoint
+ */
+export function clearCustomEndpoint(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem('custom_api_endpoint')
 }
