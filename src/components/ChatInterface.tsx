@@ -75,13 +75,6 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      {/* Usage tips */}
-      <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-        <p>
-          提示: 输入 <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">@</code> 可以选择特定 AI，
-          或使用 <code className="px-1.5 py-0.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded">@all</code> 向所有 AI 发送消息
-        </p>
-      </div>
     </div>
   )
 }

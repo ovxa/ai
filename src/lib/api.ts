@@ -1,6 +1,7 @@
 import { AIAgent } from '@/types'
 import { Message } from '@/types'
 import { estimateTokens } from '@/utils/markdown'
+import { getAgentById } from '@/lib/agents'
 
 export interface ChatAPIRequest {
   agentId: string
@@ -143,11 +144,24 @@ export async function callChatAPI(
   const compressedHistory = compressHistory(historyMessages)
 
   const messages = [
-    // 使用压缩后的消息历史
-    ...compressedHistory.map((msg: Message) => ({
-      role: msg.role,
-      content: msg.content
-    })),
+    // 使用压缩后的消息历史，给 AI 消息添加名字标识
+    ...compressedHistory.map((msg: Message) => {
+      let content = msg.content
+
+      // 如果是 AI 回复，添加名字前缀
+      if (msg.role === 'assistant' && msg.agentId) {
+        const agent = getAgentById(msg.agentId)
+        if (agent) {
+          const agentName = extractModelShortName(agent.model)
+          content = `[${agentName}]: ${msg.content}`
+        }
+      }
+
+      return {
+        role: msg.role,
+        content
+      }
+    }),
     {
       role: 'user',
       content: request.message
