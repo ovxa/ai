@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, memo } from 'react'
 import { Message, AgentColor } from '@/types'
 import { useChatStore } from '@/lib/store'
 import { getAgentById } from '@/lib/agents'
@@ -35,7 +35,8 @@ const dotColorClasses: Record<AgentColor, string> = {
   cyan: 'bg-cyan-500',
 }
 
-function MessageBubble({ message }: { message: Message }) {
+// 使用 React.memo 优化性能，避免不必要的重渲染
+const MessageBubble = memo(function MessageBubble({ message }: { message: Message }) {
   const agent = message.agentId ? getAgentById(message.agentId) : null
   const isUser = message.role === 'user'
   const [isExpanded, setIsExpanded] = useState(false)
@@ -249,7 +250,7 @@ function MessageBubble({ message }: { message: Message }) {
       )}
     </>
   )
-}
+})
 
 export default function MessageList() {
   const messages = useChatStore(state => state.messages)

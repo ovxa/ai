@@ -1,5 +1,5 @@
 import { AgentId, MentionParseResult, AutocompleteOption } from '@/types'
-import { AI_AGENTS, getAllAgentIds } from '@/lib/agents'
+import { getAgents, getAllAgentIds } from '@/lib/agents'
 
 /**
  * 解析消息中的 @mention
@@ -109,7 +109,7 @@ export function getAutocompleteOptions(
       label: '@all (所有 AI)',
       isOnline: true
     },
-    ...AI_AGENTS.map(agent => ({
+    ...getAgents().map(agent => ({
       id: agent.id,
       label: `${agent.mention} (${agent.name})`,
       color: agent.color,

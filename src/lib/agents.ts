@@ -28,8 +28,11 @@ const generateAgents = (models: string[]): AIAgent[] => {
   })
 }
 
-// 初始化 AI agents
-export let AI_AGENTS: AIAgent[] = generateAgents(DEFAULT_MODELS)
+// 私有变量存储 AI agents
+let AI_AGENTS: AIAgent[] = generateAgents(DEFAULT_MODELS)
+
+// Getter 函数获取所有 agents（避免直接导出可变变量）
+export const getAgents = (): AIAgent[] => AI_AGENTS
 
 export const getAgentById = (id: string) => {
   return AI_AGENTS.find(agent => agent.id === id)

@@ -24,16 +24,42 @@ export function hasMarkdownSyntax(text: string): boolean {
 }
 
 /**
- * 估算文本的 token 数量（粗略估计）
+ * 估算文本的 token 数量（改进版，更准确处理中英文混合）
  * @param text 文本内容
- * @returns token 数量
+ * @returns token 数量估算值
+ *
+ * 估算规则：
+ * - 中文字符（CJK）：约 1.2-1.5 字符/token，取 1.3
+ * - 英文单词：约 1.3 字符/token（包括空格）
+ * - 数字和标点：约 3-4 字符/token
+ *
+ * 注意：这是粗略估算，实际 token 数可能有 ±20% 的偏差
  */
 export function estimateTokens(text: string): number {
-  // 粗略估计：1 token ≈ 4 个字符（英文）或 1.5 个中文字符
-  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
-  const otherChars = text.length - chineseChars
+  if (!text) return 0
 
-  return Math.ceil(chineseChars / 1.5 + otherChars / 4)
+  // 统计中文字符（包括中日韩统一表意文字）
+  const cjkChars = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length
+
+  // 统计英文单词（包括数字）
+  const words = (text.match(/[a-zA-Z0-9]+/g) || []).length
+
+  // 统计空格
+  const spaces = (text.match(/\s/g) || []).length
+
+  // 其他字符（标点符号等）
+  const alphanumericAndSpaces = (text.match(/[a-zA-Z0-9\s]/g) || []).length
+  const otherChars = text.length - cjkChars - alphanumericAndSpaces
+
+  // 估算 tokens：
+  // - CJK: 1.3 字符/token
+  // - 英文单词: 平均 1.3 字符/token
+  // - 标点和其他: 3 字符/token
+  const cjkTokens = cjkChars / 1.3
+  const wordTokens = words * 1.3 // 平均每个单词约 1.3 tokens
+  const punctTokens = otherChars / 3
+
+  return Math.ceil(cjkTokens + wordTokens + punctTokens)
 }
 
 /**
