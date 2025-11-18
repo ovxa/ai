@@ -217,41 +217,46 @@ export async function callChatAPI(
       throw new Error('No response body')
     }
 
-    while (true) {
-      // 检查是否已中止
-      if (signal?.aborted) {
-        reader.cancel()
-        throw new Error('Request aborted')
-      }
+    try {
+      while (true) {
+        // 检查是否已中止
+        if (signal?.aborted) {
+          await reader.cancel()
+          throw new Error('Request aborted')
+        }
 
-      const { done, value } = await reader.read()
-      if (done) break
+        const { done, value } = await reader.read()
+        if (done) break
 
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split('\n').filter(line => line.trim() !== '')
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n').filter(line => line.trim() !== '')
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[DONE]') continue
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
 
-          try {
-            const parsed = JSON.parse(data)
-            const content = parsed.choices?.[0]?.delta?.content
+            try {
+              const parsed = JSON.parse(data)
+              const content = parsed.choices?.[0]?.delta?.content
 
-            if (content) {
-              fullContent += content
-              // 调用流式回调
-              if (onStream) {
-                onStream(fullContent)
+              if (content) {
+                fullContent += content
+                // 调用流式回调
+                if (onStream) {
+                  onStream(fullContent)
+                }
               }
+            } catch (e) {
+              // 忽略解析错误
+              console.warn('Failed to parse SSE data:', data)
             }
-          } catch (e) {
-            // 忽略解析错误
-            console.warn('Failed to parse SSE data:', data)
           }
         }
       }
+    } finally {
+      // 确保 reader 被正确释放，及时关闭连接
+      reader.releaseLock()
     }
 
     if (!fullContent) {
