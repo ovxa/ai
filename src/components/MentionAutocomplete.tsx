@@ -1,0 +1,139 @@
+import { useEffect, useRef } from 'react'
+import { AutocompleteOption } from '@/types'
+
+interface MentionAutocompleteProps {
+  options: AutocompleteOption[]
+  selectedIndex: number
+  onSelect: (option: AutocompleteOption) => void
+  onClose: () => void
+  position: { top: number; left: number }
+}
+
+const colorClasses = {
+  blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+}
+
+export default function MentionAutocomplete({
+  options,
+  selectedIndex,
+  onSelect,
+  onClose,
+  position
+}: MentionAutocompleteProps) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const selectedRef = useRef<HTMLDivElement>(null)
+
+  // 滚动到选中的选项
+  useEffect(() => {
+    if (selectedRef.current && listRef.current) {
+      const list = listRef.current
+      const selected = selectedRef.current
+      const listRect = list.getBoundingClientRect()
+      const selectedRect = selected.getBoundingClientRect()
+
+      if (selectedRect.top < listRect.top) {
+        selected.scrollIntoView({ block: 'nearest' })
+      } else if (selectedRect.bottom > listRect.bottom) {
+        selected.scrollIntoView({ block: 'nearest' })
+      }
+    }
+  }, [selectedIndex])
+
+  // 点击外部关闭
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (listRef.current && !listRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [onClose])
+
+  if (options.length === 0) {
+    return null
+  }
+
+  return (
+    <div
+      ref={listRef}
+      className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+      style={{
+        top: position.top,
+        left: position.left,
+        maxHeight: '200px',
+        minWidth: '280px'
+      }}
+    >
+      <div className="overflow-y-auto max-h-[200px]">
+        {options.map((option, index) => {
+          const isSelected = index === selectedIndex
+          const colorClass = option.color && option.color in colorClasses
+            ? colorClasses[option.color as keyof typeof colorClasses]
+            : ''
+
+          return (
+            <div
+              key={option.id}
+              ref={isSelected ? selectedRef : null}
+              className={`
+                px-4 py-2.5 cursor-pointer flex items-center gap-3 transition-colors
+                ${isSelected
+                  ? 'bg-blue-50 dark:bg-blue-900/30'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                }
+              `}
+              onClick={() => onSelect(option)}
+            >
+              {/* 在线状态指示器 */}
+              <div className="flex-shrink-0">
+                {option.isOnline ? (
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                )}
+              </div>
+
+              {/* 选项内容 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`
+                    text-sm font-medium px-2 py-0.5 rounded
+                    ${option.id === 'all'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                      : colorClass || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    }
+                  `}>
+                    {option.label.split(' ')[0]}
+                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    {option.label.split(' ').slice(1).join(' ')}
+                  </span>
+                </div>
+              </div>
+
+              {/* 选中指示器 */}
+              {isSelected && (
+                <div className="flex-shrink-0 text-blue-500">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 提示文本 */}
+      <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          ↑↓ 导航 • Enter 选择 • Esc 关闭
+        </p>
+      </div>
+    </div>
+  )
+}
