@@ -1,11 +1,18 @@
+import { useEffect } from 'react'
 import { AI_AGENTS } from '@/lib/agents'
 import { useChatStore } from '@/lib/store'
 import AIAgentCard from './AIAgentCard'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
+import APIKeySettings from './APIKeySettings'
 
 export default function ChatInterface() {
-  const { currentMentions, error, reset } = useChatStore()
+  const { currentMentions, error, reset, initializeAPIKey } = useChatStore()
+
+  // 初始化 API key（从 URL 或 localStorage）
+  useEffect(() => {
+    initializeAPIKey()
+  }, [initializeAPIKey])
 
   // 检查是否有任何 agent 被提及
   const hasMentions = currentMentions.length > 0
@@ -24,15 +31,18 @@ export default function ChatInterface() {
             </p>
           </div>
 
-          {/* Reset button */}
-          <button
-            onClick={reset}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
-                     bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
-                     rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            清空对话
-          </button>
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <APIKeySettings />
+            <button
+              onClick={reset}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
+                       bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
+                       rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              清空对话
+            </button>
+          </div>
         </div>
 
         {/* Error banner */}

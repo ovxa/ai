@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { AgentId, AgentStatus, Message, AgentState } from '@/types'
-import { getAllAgentIds } from './agents'
+import { getAllAgentIds, getAgentById } from './agents'
 import { parseMessage } from '@/utils/mention'
+import { callChatAPI, getAvailableAPIKey, saveAPIKey } from './api'
 
 interface ChatStore {
   // 状态
@@ -10,6 +11,7 @@ interface ChatStore {
   currentMentions: AgentId[] // 当前消息提及的 agents
   isLoading: boolean
   error: string | null
+  apiKey: string | null // 当前使用的 API key
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -18,6 +20,8 @@ interface ChatStore {
   clearCurrentMentions: () => void
   sendMessage: (content: string) => Promise<void>
   sendToSpecificAgents: (content: string, agentIds: AgentId[]) => Promise<void>
+  setAPIKey: (key: string) => void
+  initializeAPIKey: () => void
   reset: () => void
 }
 
@@ -40,6 +44,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   currentMentions: [],
   isLoading: false,
   error: null,
+  apiKey: null,
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -100,7 +105,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendToSpecificAgents: async (content, agentIds) => {
-    const { addMessage, setAgentStatus } = get()
+    const { addMessage, setAgentStatus, apiKey } = get()
+
+    // 检查 API key
+    if (!apiKey) {
+      set({
+        error: '请先设置 API Key。您可以在 URL 中添加 ?api=YOUR_KEY 或在设置中配置。'
+      })
+      return
+    }
 
     set({ isLoading: true, error: null })
 
@@ -112,22 +125,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const responses = await Promise.allSettled(
         agentIds.map(async (agentId) => {
           try {
-            const response = await fetch('/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            const agent = getAgentById(agentId)
+            if (!agent) {
+              throw new Error(`Agent ${agentId} not found`)
+            }
+
+            const response = await callChatAPI(
+              {
                 agentId,
                 message: content,
                 history: get().messages
-              })
-            })
+              },
+              agent,
+              apiKey
+            )
 
-            if (!response.ok) {
-              throw new Error(`API error: ${response.status}`)
-            }
-
-            const data = await response.json()
-            return { agentId, content: data.content }
+            return { agentId, content: response.content }
           } catch (error) {
             console.error(`Error from ${agentId}:`, error)
             setAgentStatus(agentId, 'error')
@@ -150,9 +163,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           setAgentStatus(agentId, 'online')
         } else {
           // 失败：添加错误消息
+          const errorMsg = result.reason instanceof Error
+            ? result.reason.message
+            : '抱歉，我现在无法回复。请稍后再试。'
+
           addMessage({
             role: 'assistant',
-            content: '抱歉，我现在无法回复。请稍后再试。',
+            content: errorMsg,
             agentId
           })
           setAgentStatus(agentId, 'error')
@@ -162,13 +179,27 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       // 检查是否所有请求都失败了
       const allFailed = responses.every(r => r.status === 'rejected')
       if (allFailed) {
-        set({ error: '所有 AI 都无法响应，请检查 API 配置' })
+        set({ error: '所有 AI 都无法响应，请检查 API Key 和网络连接' })
       }
     } catch (error) {
       console.error('Send message error:', error)
       set({ error: '发送消息失败，请重试' })
     } finally {
       set({ isLoading: false })
+    }
+  },
+
+  setAPIKey: (key) => {
+    set({ apiKey: key })
+    if (key) {
+      saveAPIKey(key)
+    }
+  },
+
+  initializeAPIKey: () => {
+    const key = getAvailableAPIKey()
+    if (key) {
+      set({ apiKey: key })
     }
   },
 

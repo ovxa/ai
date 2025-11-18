@@ -1,6 +1,6 @@
 # AI Trio Chat - 三 AI 协作助手
 
-一个支持与三个专业 AI 助手协作的聊天应用，具有完整的 @mention 系统。
+一个支持与三个专业 AI 助手协作的聊天应用，具有完整的 @mention 系统。**可直接在 GitHub Pages 上静态部署运行！**
 
 ## 功能特性
 
@@ -17,36 +17,39 @@
 - 实时状态显示：在线/离线/正在输入/错误状态
 - 视觉反馈：被提及的 AI 卡片高亮，未提及的半透明
 - 响应式设计：支持桌面、平板、移动端
+- **静态部署**：无需服务器，可直接在 GitHub Pages 运行
+- **URL API Key**：支持通过 URL 参数传递 API Key
 
 ## 技术栈
 
-- **框架**: Next.js 14 (App Router)
+- **框架**: Next.js 14 (Static Export)
 - **语言**: TypeScript
 - **样式**: Tailwind CSS
 - **状态管理**: Zustand
-- **AI API**: OpenRouter (支持多个 AI 模型)
+- **AI API**: OpenRouter (客户端直接调用)
 
 ## 快速开始
 
-### 1. 安装依赖
+### 方式一：通过 GitHub Pages 直接使用（推荐）
+
+1. 访问部署的页面（假设部署在 GitHub Pages）
+2. 在 URL 后添加你的 OpenRouter API Key：
+   ```
+   https://your-username.github.io/ai/?api=YOUR_OPENROUTER_API_KEY
+   ```
+3. 或者在设置中手动输入 API Key
+
+获取 OpenRouter API Key：https://openrouter.ai/keys
+
+### 方式二：本地开发
+
+#### 1. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 2. 配置环境变量
-
-创建 `.env` 文件（参考 `.env.example`）：
-
-```bash
-NEXT_PUBLIC_OPENROUTER_API_KEY=your_api_key_here
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=AI Trio Chat
-```
-
-获取 OpenRouter API Key：https://openrouter.ai/
-
-### 3. 运行开发服务器
+#### 2. 运行开发服务器
 
 ```bash
 npm run dev
@@ -54,19 +57,79 @@ npm run dev
 
 访问 http://localhost:3000
 
-### 4. 构建生产版本
+首次访问会提示输入 API Key，或通过 URL 参数传递：
+```
+http://localhost:3000?api=YOUR_API_KEY
+```
+
+#### 3. 构建静态版本
 
 ```bash
 npm run build
-npm start
 ```
+
+静态文件会输出到 `out/` 目录，可以直接部署到任何静态服务器。
+
+## GitHub Pages 部署
+
+### 自动部署（推荐）
+
+1. Fork 本项目
+2. 在 GitHub 仓库设置中启用 GitHub Pages
+3. 选择部署来源为 "GitHub Actions"
+4. 推送代码后会自动构建和部署
+
+### 手动部署
+
+```bash
+# 构建静态文件
+npm run build
+
+# out/ 目录包含所有静态文件，可以直接部署
+```
+
+### 配置 basePath（如果需要）
+
+如果部署在子路径（如 `https://username.github.io/ai/`），需要修改 `next.config.js`：
+
+```javascript
+const nextConfig = {
+  // ...
+  basePath: '/ai',  // 取消注释并设置你的仓库名
+}
+```
+
+## API Key 配置
+
+### 方式一：URL 参数（推荐用于分享）
+
+直接在 URL 中添加 API key：
+
+```
+https://your-site.com?api=sk-or-v1-xxx
+```
+
+支持多个 API keys（用于负载均衡）：
+
+```
+https://your-site.com?api=key1&api=key2&api=key3
+```
+
+### 方式二：设置界面
+
+1. 点击右上角的 "🔑" 图标
+2. 输入你的 OpenRouter API Key
+3. 点击保存（会保存到浏览器 localStorage）
+
+### 方式三：localStorage
+
+API Key 会自动保存到浏览器的 localStorage，下次访问时自动加载。
 
 ## 项目结构
 
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── api/chat/          # API 路由
 │   ├── globals.css        # 全局样式
 │   ├── layout.tsx         # 根布局
 │   └── page.tsx           # 主页
@@ -75,10 +138,12 @@ src/
 │   ├── ChatInput.tsx      # 聊天输入框
 │   ├── ChatInterface.tsx  # 主界面
 │   ├── MentionAutocomplete.tsx  # @mention 自动补全
-│   └── MessageList.tsx    # 消息列表
+│   ├── MessageList.tsx    # 消息列表
+│   └── APIKeySettings.tsx # API Key 设置
 ├── lib/                   # 库和配置
 │   ├── agents.ts          # AI Agent 配置
-│   └── store.ts           # Zustand 状态管理
+│   ├── store.ts           # Zustand 状态管理
+│   └── api.ts             # OpenRouter API 客户端
 ├── types/                 # TypeScript 类型定义
 │   └── index.ts
 └── utils/                 # 工具函数
