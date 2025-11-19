@@ -5,7 +5,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // GitHub Pages 部署在子路径 /ai/
+  // GitHub Pages deployed at subpath /ai/
   basePath: '/ai',
 }
 
