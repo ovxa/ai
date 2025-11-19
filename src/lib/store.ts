@@ -16,6 +16,7 @@ interface ChatStore {
   customEndpoint: string | null // 自定义 API endpoint
   streamingMessages: Map<AgentId, string> // 多个 AI 同时流式输出的内容
   abortControllers: Map<AgentId, AbortController> // 每个 AI 独立的中断控制器
+  mentionChainDepth: number // 当前 mention 链的深度，用于防止无限循环
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -59,6 +60,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   customEndpoint: null,
   streamingMessages: new Map(),
   abortControllers: new Map(),
+  mentionChainDepth: 0,
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -85,19 +87,43 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   finalizeStreamingMessage: (agentId) => {
-    const { streamingMessages, addMessage } = get()
+    const { streamingMessages, addMessage, sendToSpecificAgents, mentionChainDepth } = get()
     const content = streamingMessages.get(agentId)
     if (content) {
+      // 解析 AI 回复中的 @mentions
+      const { mentions } = parseMessage(content)
+
       addMessage({
         role: 'assistant',
         content,
-        agentId
+        agentId,
+        mentions: mentions.length > 0 ? mentions : undefined
       })
       set(state => {
         const newStreamingMessages = new Map(state.streamingMessages)
         newStreamingMessages.delete(agentId)
         return { streamingMessages: newStreamingMessages }
       })
+
+      // 如果 AI 回复中有 @mention 其他 AI，且没有超过链深度限制
+      if (mentions.length > 0 && mentionChainDepth < 3) {
+        // 过滤掉自己（避免自己 @mention 自己）
+        const otherAgents = mentions.filter(id => id !== agentId)
+
+        if (otherAgents.length > 0) {
+          // 增加链深度
+          set({ mentionChainDepth: mentionChainDepth + 1 })
+
+          // 异步触发被 mention 的 AI（不阻塞当前流程）
+          setTimeout(() => {
+            sendToSpecificAgents(content, otherAgents, false, false)
+              .finally(() => {
+                // 完成后减少链深度
+                set(state => ({ mentionChainDepth: Math.max(0, state.mentionChainDepth - 1) }))
+              })
+          }, 100)
+        }
+      }
     }
   },
 
@@ -141,6 +167,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // 停止之前的所有生成
     stopAllGeneration()
+
+    // 重置 mention 链深度（用户发送新消息时重置）
+    set({ mentionChainDepth: 0 })
 
     // 解析消息中的 @mentions
     const { mentions, cleanContent, isAll } = parseMessage(content)
@@ -399,7 +428,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       currentMentions: [],
       pendingAgents: [],
       isLoading: false,
-      error: null
+      error: null,
+      mentionChainDepth: 0
     })
   }
 }))
