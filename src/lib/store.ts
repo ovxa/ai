@@ -15,7 +15,7 @@ interface ChatStore {
   apiKey: string | null // 当前使用的 API key
   customEndpoint: string | null // 自定义 API endpoint
   streamingMessages: Map<AgentId, string> // 多个 AI 同时流式输出的内容
-  abortController: AbortController | null // 用于中断请求
+  abortControllers: Map<AgentId, AbortController> // 每个 AI 独立的中断控制器
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -27,7 +27,8 @@ interface ChatStore {
   clearCurrentMentions: () => void
   sendMessage: (content: string) => Promise<void>
   sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean) => Promise<void>
-  stopGeneration: () => void
+  stopGeneration: (agentId: AgentId) => void
+  stopAllGeneration: () => void
   setAPIKey: (key: string) => void
   setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
@@ -57,7 +58,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   apiKey: null,
   customEndpoint: null,
   streamingMessages: new Map(),
-  abortController: null,
+  abortControllers: new Map(),
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -136,14 +137,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendMessage: async (content) => {
-    const { addMessage, sendToSpecificAgents, stopGeneration } = get()
+    const { addMessage, sendToSpecificAgents, stopAllGeneration } = get()
 
-    // 停止之前的生成
-    stopGeneration()
-
-    // 创建新的 AbortController
-    const abortController = new AbortController()
-    set({ abortController })
+    // 停止之前的所有生成
+    stopAllGeneration()
 
     // 解析消息中的 @mentions
     const { mentions, cleanContent, isAll } = parseMessage(content)
@@ -167,7 +164,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false) => {
-    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, abortController, messages } = get()
+    const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, messages } = get()
 
     // 检查 API key
     if (!apiKey) {
@@ -179,6 +176,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     set({ isLoading: true, error: null, pendingAgents: agentIds })
 
+    // 为每个 AI 创建独立的 AbortController
+    const newAbortControllers = new Map<AgentId, AbortController>()
+    agentIds.forEach(agentId => {
+      newAbortControllers.set(agentId, new AbortController())
+    })
+    set(state => ({
+      abortControllers: new Map([...state.abortControllers, ...newAbortControllers])
+    }))
+
     // 判断是否有 @提及（通过检查最后一条用户消息）
     const lastUserMessage = messages[messages.length - 1]
     const isMentioned = lastUserMessage?.mentions && lastUserMessage.mentions.length > 0
@@ -188,7 +194,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         // 顺序执行：one by one，每个AI等待上一个AI的回复
         for (const agentId of agentIds) {
           // 检查是否已中止
-          if (abortController?.signal.aborted) {
+          const agentAbortController = get().abortControllers.get(agentId)
+          if (agentAbortController?.signal.aborted) {
             break
           }
 
@@ -216,7 +223,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 // 流式更新回调
                 updateStreamingMessage(agentId, chunk)
               },
-              abortController?.signal
+              agentAbortController?.signal
             )
 
             // 完成流式输出
@@ -242,6 +249,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               throw new Error(`Agent ${agentId} not found`)
             }
 
+            // 获取该 AI 的独立 AbortController
+            const agentAbortController = get().abortControllers.get(agentId)
+
             try {
               // 并行模式下使用流式输出，每个 AI 有独立的流式回调
               const response = await callChatAPI(
@@ -259,12 +269,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                   // 每个 AI 独立的流式更新回调
                   updateStreamingMessage(agentId, chunk)
                 },
-                abortController?.signal // 添加 signal 以支持中断
+                agentAbortController?.signal // 使用该 AI 独立的 signal
               )
 
               // 完成流式输出
               finalizeStreamingMessage(agentId)
               setAgentStatus(agentId, 'online')
+
+              // 清理该 AI 的 AbortController
+              set(state => {
+                const newControllers = new Map(state.abortControllers)
+                newControllers.delete(agentId)
+                return { abortControllers: newControllers }
+              })
+
               return { agentId, success: true }
             } catch (error) {
               console.error(`Error from ${agentId}:`, error)
@@ -273,6 +291,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               updateStreamingMessage(agentId, errorMsg)
               finalizeStreamingMessage(agentId)
               setAgentStatus(agentId, 'error')
+
+              // 清理该 AI 的 AbortController
+              set(state => {
+                const newControllers = new Map(state.abortControllers)
+                newControllers.delete(agentId)
+                return { abortControllers: newControllers }
+              })
+
               throw error
             }
           })
@@ -292,18 +318,51 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  stopGeneration: () => {
-    const { abortController, finalizeAllStreamingMessages } = get()
-    if (abortController) {
-      abortController.abort()
-      // 保存已生成的内容到消息历史
-      finalizeAllStreamingMessages()
-      set({
-        abortController: null,
-        isLoading: false,
-        pendingAgents: []
+  stopGeneration: (agentId) => {
+    const { abortControllers, finalizeStreamingMessage, pendingAgents } = get()
+    const agentAbortController = abortControllers.get(agentId)
+
+    if (agentAbortController) {
+      // 中止该 AI 的请求
+      agentAbortController.abort()
+
+      // 保存该 AI 已生成的内容到消息历史
+      finalizeStreamingMessage(agentId)
+
+      // 从 abortControllers 中移除
+      set(state => {
+        const newControllers = new Map(state.abortControllers)
+        newControllers.delete(agentId)
+
+        // 从 pendingAgents 中移除该 AI
+        const newPendingAgents = state.pendingAgents.filter(id => id !== agentId)
+
+        return {
+          abortControllers: newControllers,
+          pendingAgents: newPendingAgents,
+          // 如果没有更多正在生成的 AI，设置 isLoading 为 false
+          isLoading: newPendingAgents.length > 0 || state.streamingMessages.size > 1
+        }
       })
     }
+  },
+
+  stopAllGeneration: () => {
+    const { abortControllers, finalizeAllStreamingMessages } = get()
+
+    // 中止所有请求
+    abortControllers.forEach((controller) => {
+      controller.abort()
+    })
+
+    // 保存所有已生成的内容到消息历史
+    finalizeAllStreamingMessages()
+
+    set({
+      abortControllers: new Map(),
+      isLoading: false,
+      pendingAgents: []
+    })
   },
 
   setAPIKey: (key) => {
