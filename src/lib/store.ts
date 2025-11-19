@@ -90,8 +90,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const { streamingMessages, addMessage, sendToSpecificAgents, mentionChainDepth } = get()
     const content = streamingMessages.get(agentId)
     if (content) {
-      // 解析 AI 回复中的 @mentions
-      const { mentions } = parseMessage(content)
+      // 解析 AI 回复中的 @mentions，排除自己
+      const { mentions } = parseMessage(content, agentId)
 
       addMessage({
         role: 'assistant',
@@ -106,23 +106,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       })
 
       // 如果 AI 回复中有 @mention 其他 AI，且没有超过链深度限制
+      // 注意：mentions 已经不包含自己了（在 parseMessage 中已过滤）
       if (mentions.length > 0 && mentionChainDepth < 3) {
-        // 过滤掉自己（避免自己 @mention 自己）
-        const otherAgents = mentions.filter(id => id !== agentId)
+        // 增加链深度
+        set({ mentionChainDepth: mentionChainDepth + 1 })
 
-        if (otherAgents.length > 0) {
-          // 增加链深度
-          set({ mentionChainDepth: mentionChainDepth + 1 })
-
-          // 异步触发被 mention 的 AI（不阻塞当前流程）
-          setTimeout(() => {
-            sendToSpecificAgents(content, otherAgents, false, false)
-              .finally(() => {
-                // 完成后减少链深度
-                set(state => ({ mentionChainDepth: Math.max(0, state.mentionChainDepth - 1) }))
-              })
-          }, 100)
-        }
+        // 异步触发被 mention 的 AI（不阻塞当前流程）
+        setTimeout(() => {
+          sendToSpecificAgents(content, mentions, false, false)
+            .finally(() => {
+              // 完成后减少链深度
+              set(state => ({ mentionChainDepth: Math.max(0, state.mentionChainDepth - 1) }))
+            })
+        }, 100)
       }
     }
   },

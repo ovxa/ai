@@ -4,9 +4,10 @@ import { getAgents, getAllAgentIds } from '@/lib/agents'
 /**
  * 解析消息中的 @mention
  * @param input 用户输入的消息
+ * @param excludeAgentId 要排除的 agent ID（防止自己 @mention 自己）
  * @returns 解析结果，包含提及的 Agent IDs、清理后的内容、是否为 @all
  */
-export function parseMessage(input: string): MentionParseResult {
+export function parseMessage(input: string, excludeAgentId?: AgentId): MentionParseResult {
   // 动态生成所有可能的 agent IDs
   const allAgentIds = getAllAgentIds()
   const agentIdsPattern = allAgentIds.join('|')
@@ -30,13 +31,17 @@ export function parseMessage(input: string): MentionParseResult {
   const mentions = new Set<AgentId>()
 
   if (hasAll) {
-    // @all 优先级最高，返回所有 agents
-    getAllAgentIds().forEach(id => mentions.add(id))
+    // @all 优先级最高，返回所有 agents（除了自己）
+    getAllAgentIds().forEach(id => {
+      if (!excludeAgentId || id !== excludeAgentId) {
+        mentions.add(id)
+      }
+    })
   } else {
     matches.forEach(match => {
       const id = match.slice(1).toLowerCase() as AgentId
-      // 验证是否是有效的 agent ID
-      if (allAgentIds.includes(id)) {
+      // 验证是否是有效的 agent ID，且不是自己
+      if (allAgentIds.includes(id) && (!excludeAgentId || id !== excludeAgentId)) {
         mentions.add(id)
       }
     })
