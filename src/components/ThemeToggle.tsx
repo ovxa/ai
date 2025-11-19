@@ -23,22 +23,23 @@ export default function ThemeToggle() {
     }
   }, [])
 
-  // 应用主题到 DOM
-  const applyTheme = (newTheme: Theme) => {
+  // 当主题状态改变时，应用到 DOM
+  useEffect(() => {
+    if (!mounted) return
+
     const root = document.documentElement
-    if (newTheme === 'dark') {
+    if (theme === 'dark') {
       root.classList.add('dark')
     } else {
       root.classList.remove('dark')
     }
-  }
+  }, [theme, mounted])
 
   // 切换主题
   const toggleTheme = () => {
     const nextTheme: Theme = theme === 'light' ? 'dark' : 'light'
     setTheme(nextTheme)
     localStorage.setItem('theme', nextTheme)
-    applyTheme(nextTheme)
   }
 
   // 避免水合不匹配
