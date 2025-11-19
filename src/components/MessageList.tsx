@@ -204,7 +204,9 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    stopGeneration()
+                    if (message.agentId) {
+                      stopGeneration(message.agentId)
+                    }
                   }}
                   className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
                   title={t.stop}
