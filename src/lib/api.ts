@@ -454,6 +454,71 @@ export function clearCustomEndpoint(): void {
 }
 
 /**
+ * Get models from URL parameters
+ * Format: ?models=model1,model2,model3
+ */
+export function getModelsFromURL(): string[] | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const modelsParam = params.get('models')
+  if (modelsParam) {
+    return modelsParam.split(',').map(m => m.trim()).filter(m => m)
+  }
+  return null
+}
+
+/**
+ * Save models configuration to localStorage
+ */
+export function saveModelsConfig(models: string[]): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem('custom_models', JSON.stringify(models))
+}
+
+/**
+ * Get saved models configuration from localStorage
+ */
+export function getSavedModelsConfig(): string[] | null {
+  if (typeof window === 'undefined') return null
+  const saved = localStorage.getItem('custom_models')
+  if (saved) {
+    try {
+      return JSON.parse(saved)
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+/**
+ * Clean sensitive parameters from URL
+ * Removes api, endpoint, and models from URL without page reload
+ */
+export function cleanURLParameters(): void {
+  if (typeof window === 'undefined') return
+
+  const url = new URL(window.location.href)
+  const params = url.searchParams
+
+  // Check if any sensitive parameters exist
+  const hasApi = params.has('api')
+  const hasEndpoint = params.has('endpoint')
+  const hasModels = params.has('models')
+
+  if (hasApi || hasEndpoint || hasModels) {
+    // Remove sensitive parameters
+    params.delete('api')
+    params.delete('endpoint')
+    params.delete('models')
+
+    // Update URL without reload
+    const newUrl = params.toString() ? `${url.pathname}?${params.toString()}` : url.pathname
+    window.history.replaceState({}, '', newUrl)
+  }
+}
+
+/**
  * Fetch available model list from API
  */
 export async function fetchAvailableModels(
