@@ -35,12 +35,23 @@ const dotColorClasses: Record<AgentColor, string> = {
   cyan: 'bg-cyan-500',
 }
 
+interface MessageBubbleProps {
+  message: Message
+  stableKey: string // 稳定的键，用于维护状态
+  isFullscreenOpen?: boolean
+  onFullscreenToggle?: (open: boolean) => void
+}
+
 // 使用 React.memo 优化性能，避免不必要的重渲染
-const MessageBubble = memo(function MessageBubble({ message }: { message: Message }) {
+const MessageBubble = memo(function MessageBubble({
+  message,
+  stableKey,
+  isFullscreenOpen = false,
+  onFullscreenToggle
+}: MessageBubbleProps) {
   const agent = message.agentId ? getAgentById(message.agentId) : null
   const isUser = message.role === 'user'
   const [isExpanded, setIsExpanded] = useState(false)
-  const [showFullscreen, setShowFullscreen] = useState(false)
   const t = useTranslation()
 
   // 获取当前流式输出状态
@@ -63,15 +74,16 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
   // 生成摘要（用于折叠显示）
   const summary = generateSummary(message.content, 80)
 
-  // 自动折叠长消息或包含 Markdown 的消息
-  const shouldCollapse = hasMarkdown || message.content.length > 200
+  // 自动折叠长消息（12行以上）或包含 Markdown 的消息
+  const lineCount = message.content.split('\n').length
+  const shouldCollapse = hasMarkdown || lineCount > 12
   const isCollapsed = shouldCollapse && !isExpanded
 
   const handleClick = () => {
     if (shouldCollapse) {
       if (hasMarkdown) {
         // Markdown 消息：打开全屏查看
-        setShowFullscreen(true)
+        onFullscreenToggle?.(true)
       } else {
         // 长消息：展开/折叠
         setIsExpanded(!isExpanded)
@@ -258,10 +270,10 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
       </div>
 
       {/* 全屏 Markdown 查看 */}
-      {showFullscreen && (
+      {isFullscreenOpen && (
         <FullscreenMarkdown
           content={message.content}
-          onClose={() => setShowFullscreen(false)}
+          onClose={() => onFullscreenToggle?.(false)}
         />
       )}
     </>
@@ -274,7 +286,25 @@ export default function MessageList() {
   const pendingAgents = useChatStore(state => state.pendingAgents)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+  // 维护全屏状态，使用稳定的key（基于消息内容hash或agentId+timestamp）
+  const [fullscreenStates, setFullscreenStates] = useState<Record<string, boolean>>({})
   const t = useTranslation()
+
+  // 生成稳定的消息key
+  const getStableKey = (message: Message, agentId?: string): string => {
+    // 对于流式消息，使用 agentId + 最后一条用户消息的 ID
+    if (message.id === 'streaming' && agentId) {
+      const lastUserMessage = messages.filter(m => m.role === 'user').pop()
+      return `${agentId}-${lastUserMessage?.id || 'init'}`
+    }
+    // 对于普通消息，使用消息ID
+    return message.id
+  }
+
+  // 切换全屏状态
+  const toggleFullscreen = (key: string, open: boolean) => {
+    setFullscreenStates(prev => ({ ...prev, [key]: open }))
+  }
 
   // 检测用户是否手动滚动
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -306,23 +336,39 @@ export default function MessageList() {
 
   return (
     <div className="h-full overflow-y-auto px-4 py-6" onScroll={handleScroll}>
-      {messages.map(message => (
-        <MessageBubble key={message.id} message={message} />
-      ))}
+      {messages.map(message => {
+        const stableKey = getStableKey(message)
+        return (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            stableKey={stableKey}
+            isFullscreenOpen={fullscreenStates[stableKey] || false}
+            onFullscreenToggle={(open) => toggleFullscreen(stableKey, open)}
+          />
+        )
+      })}
 
       {/* 流式输出中的消息 - 支持多个AI同时流式输出 */}
-      {Array.from(streamingMessages.entries()).map(([agentId, content]) => (
-        <MessageBubble
-          key={`streaming-${agentId}`}
-          message={{
-            id: 'streaming',
-            role: 'assistant',
-            content,
-            agentId,
-            timestamp: Date.now()
-          }}
-        />
-      ))}
+      {Array.from(streamingMessages.entries()).map(([agentId, content]) => {
+        const streamingMessage = {
+          id: 'streaming',
+          role: 'assistant' as const,
+          content,
+          agentId,
+          timestamp: Date.now()
+        }
+        const stableKey = getStableKey(streamingMessage, agentId)
+        return (
+          <MessageBubble
+            key={`streaming-${agentId}`}
+            message={streamingMessage}
+            stableKey={stableKey}
+            isFullscreenOpen={fullscreenStates[stableKey] || false}
+            onFullscreenToggle={(open) => toggleFullscreen(stableKey, open)}
+          />
+        )
+      })}
 
       {/* 等待回复的AI占位符 - 显示生成动画 */}
       {pendingAgents.map(agentId => {
