@@ -45,14 +45,14 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
 
   // 获取当前流式输出状态
   const streamingMessages = useChatStore(state => state.streamingMessages)
-  const isLoading = useChatStore(state => state.isLoading)
+  const pendingAgents = useChatStore(state => state.pendingAgents)
   const stopGeneration = useChatStore(state => state.stopGeneration)
 
   // 判断当前消息是否正在流式输出
   const isStreaming = message.id === 'streaming' && message.agentId && streamingMessages.has(message.agentId)
 
-  // 判断是否在等待此AI的回复（用户刚发送消息后）
-  const isWaitingForResponse = !isUser && isLoading && !isStreaming && message.id !== 'streaming'
+  // 判断是否在等待此AI的回复（仅当该AI在pendingAgents列表中）
+  const isWaitingForResponse = !isUser && message.agentId && pendingAgents.includes(message.agentId) && !isStreaming && message.id !== 'streaming'
 
   // 检测是否包含 Markdown
   const hasMarkdown = hasMarkdownSyntax(message.content)

@@ -293,14 +293,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   stopGeneration: () => {
-    const { abortController } = get()
+    const { abortController, finalizeAllStreamingMessages } = get()
     if (abortController) {
       abortController.abort()
+      // 保存已生成的内容到消息历史
+      finalizeAllStreamingMessages()
       set({
         abortController: null,
         isLoading: false,
-        pendingAgents: [],
-        streamingMessages: new Map()
+        pendingAgents: []
       })
     }
   },
