@@ -182,11 +182,6 @@ export default function ChatInput() {
                      resize-none overflow-y-auto"
             style={{ maxHeight: '200px' }}
           />
-
-          {/* 提示文本 */}
-          <div className="absolute bottom-1 right-2 text-xs text-gray-400 pointer-events-none">
-            {t.sendHint}
-          </div>
         </div>
 
         {/* 发送按钮 */}
