@@ -16,7 +16,7 @@ interface ChatStore {
   customEndpoint: string | null // 自定义 API endpoint
   streamingMessages: Map<AgentId, string> // 多个 AI 同时流式输出的内容
   abortControllers: Map<AgentId, AbortController> // 每个 AI 独立的中断控制器
-  mentionChainDepth: number // 当前 mention 链的深度，用于防止无限循环
+  aiMentionCount: number // AI 互相 mention 的计数器（从最近用户消息开始）
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -60,7 +60,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   customEndpoint: null,
   streamingMessages: new Map(),
   abortControllers: new Map(),
-  mentionChainDepth: 0,
+  aiMentionCount: 0,
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -87,7 +87,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   finalizeStreamingMessage: (agentId) => {
-    const { streamingMessages, addMessage, sendToSpecificAgents, mentionChainDepth } = get()
+    const { streamingMessages, addMessage, sendToSpecificAgents, aiMentionCount } = get()
     const content = streamingMessages.get(agentId)
     if (content) {
       // 解析 AI 回复中的 @mentions，排除自己
@@ -105,20 +105,21 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         return { streamingMessages: newStreamingMessages }
       })
 
-      // 如果 AI 回复中有 @mention 其他 AI，且没有超过链深度限制
-      // 注意：mentions 已经不包含自己了（在 parseMessage 中已过滤）
-      if (mentions.length > 0 && mentionChainDepth < 3) {
-        // 增加链深度
-        set({ mentionChainDepth: mentionChainDepth + 1 })
+      // 如果 AI 回复中有 @mention 其他 AI，且没有超过计数限制
+      // 限制：从用户消息开始，最多允许 5 次 AI-to-AI mentions
+      if (mentions.length > 0 && aiMentionCount < 5) {
+        // 原子操作：先增加计数器，再触发
+        const newCount = aiMentionCount + 1
+        set({ aiMentionCount: newCount })
 
-        // 异步触发被 mention 的 AI（不阻塞当前流程）
-        setTimeout(() => {
-          sendToSpecificAgents(content, mentions, false, false)
-            .finally(() => {
-              // 完成后减少链深度
-              set(state => ({ mentionChainDepth: Math.max(0, state.mentionChainDepth - 1) }))
-            })
-        }, 100)
+        console.log(`[AI Mention Chain] ${agentId} mentioned ${mentions.join(', ')} (count: ${newCount}/5)`)
+
+        // 同步触发被 mention 的 AI（不使用 setTimeout，避免竞争条件）
+        sendToSpecificAgents(content, mentions, false, false).catch(error => {
+          console.error('Error in AI mention chain:', error)
+        })
+      } else if (mentions.length > 0) {
+        console.log(`[AI Mention Chain] Limit reached (${aiMentionCount}/5), blocking ${agentId}'s mention of ${mentions.join(', ')}`)
       }
     }
   },
@@ -164,8 +165,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     // 停止之前的所有生成
     stopAllGeneration()
 
-    // 重置 mention 链深度（用户发送新消息时重置）
-    set({ mentionChainDepth: 0 })
+    // 重置 AI mention 计数器（用户发送新消息时重置）
+    set({ aiMentionCount: 0 })
 
     // 解析消息中的 @mentions
     const { mentions, cleanContent, isAll } = parseMessage(content)
@@ -425,7 +426,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       pendingAgents: [],
       isLoading: false,
       error: null,
-      mentionChainDepth: 0
+      aiMentionCount: 0
     })
   }
 }))
