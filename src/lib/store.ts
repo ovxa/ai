@@ -5,18 +5,18 @@ import { parseMessage } from '@/utils/mention'
 import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint } from './api'
 
 interface ChatStore {
-  // 状态
+  // State
   messages: Message[]
   agents: Map<AgentId, AgentState>
-  currentMentions: AgentId[] // 当前消息提及的 agents
-  pendingAgents: AgentId[] // 等待回复的 agents（显示生成动画）
+  currentMentions: AgentId[] // Agents mentioned in current message
+  pendingAgents: AgentId[] // Agents waiting for response (show generating animation)
   isLoading: boolean
   error: string | null
-  apiKey: string | null // 当前使用的 API key
-  customEndpoint: string | null // 自定义 API endpoint
-  streamingMessages: Map<AgentId, string> // 多个 AI 同时流式输出的内容
-  abortControllers: Map<AgentId, AbortController> // 每个 AI 独立的中断控制器
-  aiMentionCount: number // AI 互相 mention 的计数器（从最近用户消息开始）
+  apiKey: string | null // Currently used API key
+  customEndpoint: string | null // Custom API endpoint
+  streamingMessages: Map<AgentId, string> // Streaming content from multiple AIs simultaneously
+  abortControllers: Map<AgentId, AbortController> // Independent abort controller for each AI
+  aiMentionCount: number // AI-to-AI mention counter (starts from latest user message)
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -36,7 +36,7 @@ interface ChatStore {
   reset: () => void
 }
 
-// 初始化所有 agents 为在线状态
+// Initialize all agents as online
 const initializeAgents = (): Map<AgentId, AgentState> => {
   const agents = new Map<AgentId, AgentState>()
   getAllAgentIds().forEach(id => {
@@ -79,7 +79,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       newStreamingMessages.set(agentId, content)
       return { streamingMessages: newStreamingMessages }
     })
-    // 当AI开始流式输出时，从pendingAgents中移除
+    // Remove from pendingAgents when AI starts streaming output
     const { pendingAgents } = get()
     if (pendingAgents.includes(agentId)) {
       set({ pendingAgents: pendingAgents.filter(id => id !== agentId) })
@@ -90,7 +90,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const { streamingMessages, addMessage, sendToSpecificAgents, aiMentionCount } = get()
     const content = streamingMessages.get(agentId)
     if (content) {
-      // 解析 AI 回复中的 @mentions，排除自己
+      // Parse @mentions in AI response, exclude self
       const { mentions } = parseMessage(content, agentId)
 
       addMessage({
@@ -105,17 +105,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         return { streamingMessages: newStreamingMessages }
       })
 
-      // 如果 AI 回复中有 @mention 其他 AI，且没有超过计数限制
-      // 限制：从用户消息开始，最多允许 5 次 AI-to-AI mentions
+      // If AI response has @mentions to other AIs and hasn't exceeded count limit
+      // Limit: From user message start, allow max 5 AI-to-AI mentions
       if (mentions.length > 0 && aiMentionCount < 5) {
-        // 原子操作：先增加计数器，再触发
+        // Atomic operation: increment counter first, then trigger
         const newCount = aiMentionCount + 1
         set({ aiMentionCount: newCount })
 
         console.log(`[AI Mention Chain] ${agentId} mentioned ${mentions.join(', ')} (count: ${newCount}/5)`)
 
-        // 同步触发被 mention 的 AI（不使用 setTimeout，避免竞争条件）
-        // 传递 agentId 作为 mentionedBy，这样被 mention 的 AI 会收到 system prompt
+        // Synchronously trigger mentioned AIs (don't use setTimeout to avoid race conditions)
+        // Pass agentId as mentionedBy so mentioned AI receives system prompt
         sendToSpecificAgents(content, mentions, false, false, agentId).catch(error => {
           console.error('Error in AI mention chain:', error)
         })
@@ -163,28 +163,28 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   sendMessage: async (content) => {
     const { addMessage, sendToSpecificAgents, stopAllGeneration } = get()
 
-    // 停止之前的所有生成
+    // Stop all previous generation
     stopAllGeneration()
 
-    // 重置 AI mention 计数器（用户发送新消息时重置）
+    // Reset AI mention counter (reset when user sends new message)
     set({ aiMentionCount: 0 })
 
-    // 解析消息中的 @mentions
+    // Parse @mentions in message
     const { mentions, cleanContent, isAll } = parseMessage(content)
 
-    // 添加用户消息
+    // Add user message
     addMessage({
       role: 'user',
       content: cleanContent,
       mentions: mentions.length > 0 ? mentions : undefined
     })
 
-    // 根据 mentions 决定发送策略
+    // Decide send strategy based on mentions
     if (mentions.length > 0) {
-      // 有 @mention：并行发送给指定的 agents，不过滤消息（能看到所有AI的回复）
+      // Has @mention: send to specific agents in parallel, no filtering (can see all AI responses)
       await sendToSpecificAgents(cleanContent, mentions, false, false)
     } else {
-      // 无 @mention：并行执行，每个AI只看自己和用户的对话（过滤消息）
+      // No @mention: parallel execution, each AI only sees their own and user's conversation (filter messages)
       const allAgents = getAllAgentIds()
       await sendToSpecificAgents(cleanContent, allAgents, false, true)
     }
@@ -193,17 +193,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false, mentionedBy?: AgentId) => {
     const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, messages } = get()
 
-    // 检查 API key
+    // Check API key
     if (!apiKey) {
       set({
-        error: '请先设置 API Key。您可以在 URL 中添加 ?api=YOUR_KEY 或在设置中配置。'
+        error: 'Please set API Key first. You can add ?api=YOUR_KEY to the URL or configure it in settings.'
       })
       return
     }
 
     set({ isLoading: true, error: null, pendingAgents: agentIds })
 
-    // 为每个 AI 创建独立的 AbortController
+    // Create independent AbortController for each AI
     const newAbortControllers = new Map<AgentId, AbortController>()
     agentIds.forEach(agentId => {
       newAbortControllers.set(agentId, new AbortController())
@@ -212,15 +212,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       abortControllers: new Map([...state.abortControllers, ...newAbortControllers])
     }))
 
-    // 判断是否有 @提及（通过检查最后一条用户消息）
+    // Determine if @mentioned (by checking last user message)
     const lastUserMessage = messages[messages.length - 1]
     const isMentioned = lastUserMessage?.mentions && lastUserMessage.mentions.length > 0
 
     try {
       if (sequential) {
-        // 顺序执行：one by one，每个AI等待上一个AI的回复
+        // Sequential execution: one by one, each AI waits for previous AI's response
         for (const agentId of agentIds) {
-          // 检查是否已中止
+          // Check if aborted
           const agentAbortController = get().abortControllers.get(agentId)
           if (agentAbortController?.signal.aborted) {
             break
@@ -239,27 +239,27 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               {
                 agentId,
                 message: content,
-                history: get().messages, // 实时获取最新的消息历史
-                filterByAgent, // 传递过滤参数
-                isMentioned, // 传递是否被 @提及
-                mentionedByAgent: mentionedBy // 传递是被哪个 AI 提及
+                history: get().messages, // Get latest message history in real-time
+                filterByAgent, // Pass filter parameter
+                isMentioned, // Pass whether @mentioned
+                mentionedByAgent: mentionedBy // Pass which AI mentioned
               },
               agent,
               apiKey,
               customEndpoint || undefined,
               (chunk) => {
-                // 流式更新回调
+                // Streaming update callback
                 updateStreamingMessage(agentId, chunk)
               },
               agentAbortController?.signal
             )
 
-            // 完成流式输出
+            // Complete streaming output
             finalizeStreamingMessage(agentId)
             setAgentStatus(agentId, 'online')
           } catch (error) {
             console.error(`Error from ${agentId}:`, error)
-            const errorMsg = error instanceof Error ? error.message : '抱歉，我现在无法回复。请稍后再试。'
+            const errorMsg = error instanceof Error ? error.message : 'Sorry, I cannot respond right now. Please try again later.'
 
             updateStreamingMessage(agentId, errorMsg)
             finalizeStreamingMessage(agentId)
@@ -267,7 +267,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }
         }
       } else {
-        // 并行执行：同时向多个 agents 发送，支持流式输出
+        // Parallel execution: send to multiple agents simultaneously, supports streaming output
         agentIds.forEach(id => setAgentStatus(id, 'typing'))
 
         const responses = await Promise.allSettled(
@@ -277,35 +277,35 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               throw new Error(`Agent ${agentId} not found`)
             }
 
-            // 获取该 AI 的独立 AbortController
+            // Get independent AbortController for this AI
             const agentAbortController = get().abortControllers.get(agentId)
 
             try {
-              // 并行模式下使用流式输出，每个 AI 有独立的流式回调
+              // Use streaming output in parallel mode, each AI has independent streaming callback
               const response = await callChatAPI(
                 {
                   agentId,
                   message: content,
                   history: get().messages,
-                  filterByAgent, // 传递过滤参数
-                  isMentioned, // 传递是否被 @提及
-                  mentionedByAgent: mentionedBy // 传递是被哪个 AI 提及
+                  filterByAgent, // Pass filter parameter
+                  isMentioned, // Pass whether @mentioned
+                  mentionedByAgent: mentionedBy // Pass which AI mentioned
                 },
                 agent,
                 apiKey,
                 customEndpoint || undefined,
                 (chunk) => {
-                  // 每个 AI 独立的流式更新回调
+                  // Independent streaming update callback for each AI
                   updateStreamingMessage(agentId, chunk)
                 },
-                agentAbortController?.signal // 使用该 AI 独立的 signal
+                agentAbortController?.signal // Use this AI's independent signal
               )
 
-              // 完成流式输出
+              // Complete streaming output
               finalizeStreamingMessage(agentId)
               setAgentStatus(agentId, 'online')
 
-              // 清理该 AI 的 AbortController
+              // Clean up this AI's AbortController
               set(state => {
                 const newControllers = new Map(state.abortControllers)
                 newControllers.delete(agentId)
@@ -315,13 +315,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               return { agentId, success: true }
             } catch (error) {
               console.error(`Error from ${agentId}:`, error)
-              const errorMsg = error instanceof Error ? error.message : '抱歉，我现在无法回复。请稍后再试。'
+              const errorMsg = error instanceof Error ? error.message : 'Sorry, I cannot respond right now. Please try again later.'
 
               updateStreamingMessage(agentId, errorMsg)
               finalizeStreamingMessage(agentId)
               setAgentStatus(agentId, 'error')
 
-              // 清理该 AI 的 AbortController
+              // Clean up this AI's AbortController
               set(state => {
                 const newControllers = new Map(state.abortControllers)
                 newControllers.delete(agentId)
@@ -333,15 +333,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           })
         )
 
-        // 检查是否所有请求都失败了
+        // Check if all requests failed
         const allFailed = responses.every(r => r.status === 'rejected')
         if (allFailed) {
-          set({ error: '所有 AI 都无法响应，请检查 API Key 和网络连接' })
+          set({ error: 'All AIs failed to respond, please check API Key and network connection' })
         }
       }
     } catch (error) {
       console.error('Send message error:', error)
-      set({ error: '发送消息失败，请重试' })
+      set({ error: 'Failed to send message, please retry' })
     } finally {
       set({ isLoading: false, pendingAgents: [] })
     }
@@ -352,24 +352,24 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const agentAbortController = abortControllers.get(agentId)
 
     if (agentAbortController) {
-      // 中止该 AI 的请求
+      // Abort this AI's request
       agentAbortController.abort()
 
-      // 保存该 AI 已生成的内容到消息历史
+      // Save this AI's generated content to message history
       finalizeStreamingMessage(agentId)
 
-      // 从 abortControllers 中移除
+      // Remove from abortControllers
       set(state => {
         const newControllers = new Map(state.abortControllers)
         newControllers.delete(agentId)
 
-        // 从 pendingAgents 中移除该 AI
+        // Remove this AI from pendingAgents
         const newPendingAgents = state.pendingAgents.filter(id => id !== agentId)
 
         return {
           abortControllers: newControllers,
           pendingAgents: newPendingAgents,
-          // 如果没有更多正在生成的 AI，设置 isLoading 为 false
+          // If no more AIs are generating, set isLoading to false
           isLoading: newPendingAgents.length > 0 || state.streamingMessages.size > 1
         }
       })
@@ -379,12 +379,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   stopAllGeneration: () => {
     const { abortControllers, finalizeAllStreamingMessages } = get()
 
-    // 中止所有请求
+    // Abort all requests
     abortControllers.forEach((controller) => {
       controller.abort()
     })
 
-    // 保存所有已生成的内容到消息历史
+    // Save all generated content to message history
     finalizeAllStreamingMessages()
 
     set({
@@ -411,10 +411,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       set({ apiKey: key })
     }
 
-    // 初始化自定义模型配置
+    // Initialize custom model configuration
     initializeCustomModels()
 
-    // 初始化自定义 endpoint
+    // Initialize custom endpoint
     const endpoint = getCustomEndpoint()
     if (endpoint) {
       set({ customEndpoint: endpoint })
