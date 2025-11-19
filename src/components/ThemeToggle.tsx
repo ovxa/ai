@@ -2,32 +2,31 @@
 
 import { useState, useEffect } from 'react'
 
-type Theme = 'light' | 'dark' | 'system'
+type Theme = 'light' | 'dark'
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('system')
+  const [theme, setTheme] = useState<Theme>('light')
   const [mounted, setMounted] = useState(false)
 
   // 只在客户端挂载后执行
   useEffect(() => {
     setMounted(true)
-    const savedTheme = (localStorage.getItem('theme') as Theme) || 'system'
-    setTheme(savedTheme)
+    // 从 localStorage 获取保存的主题，如果没有则根据系统主题决定初始值
+    const savedTheme = localStorage.getItem('theme') as Theme | null
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme)
+    } else {
+      // 首次访问：根据系统主题设置初始主题
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      setTheme(systemTheme)
+      localStorage.setItem('theme', systemTheme)
+    }
   }, [])
 
   // 应用主题到 DOM
   const applyTheme = (newTheme: Theme) => {
     const root = document.documentElement
-
-    if (newTheme === 'system') {
-      // 跟随系统
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      if (systemTheme === 'dark') {
-        root.classList.add('dark')
-      } else {
-        root.classList.remove('dark')
-      }
-    } else if (newTheme === 'dark') {
+    if (newTheme === 'dark') {
       root.classList.add('dark')
     } else {
       root.classList.remove('dark')
@@ -36,25 +35,11 @@ export default function ThemeToggle() {
 
   // 切换主题
   const toggleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'system']
-    const currentIndex = themes.indexOf(theme)
-    const nextTheme = themes[(currentIndex + 1) % themes.length]
-
+    const nextTheme: Theme = theme === 'light' ? 'dark' : 'light'
     setTheme(nextTheme)
     localStorage.setItem('theme', nextTheme)
     applyTheme(nextTheme)
   }
-
-  // 监听系统主题变化（仅当主题设置为 system 时）
-  useEffect(() => {
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = () => applyTheme('system')
-
-      mediaQuery.addEventListener('change', handleChange)
-      return () => mediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [theme])
 
   // 避免水合不匹配
   if (!mounted) {
@@ -76,7 +61,7 @@ export default function ThemeToggle() {
       className="flex items-center gap-2 px-3 py-1.5 text-sm
                  bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
                  rounded-lg transition-colors"
-      title={`当前主题: ${theme === 'light' ? '亮色' : theme === 'dark' ? '暗色' : '跟随系统'}`}
+      title={`当前主题: ${theme === 'light' ? '亮色' : '暗色'}`}
     >
       {theme === 'light' && (
         <>
@@ -92,14 +77,6 @@ export default function ThemeToggle() {
             <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
           </svg>
           <span className="hidden sm:inline">暗色</span>
-        </>
-      )}
-      {theme === 'system' && (
-        <>
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clipRule="evenodd" />
-          </svg>
-          <span className="hidden sm:inline">跟随系统</span>
         </>
       )}
     </button>

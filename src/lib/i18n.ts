@@ -8,7 +8,7 @@ export type Language = 'de' | 'en' | 'es' | 'fr' | 'it' | 'ja' | 'ko' | 'pt' | '
 export const translations = {
   de: {
     // German
-    inputPlaceholder: 'Nachricht eingeben... (@ verwenden, um spezifische KI zu erwähnen)',
+    inputPlaceholder: '@',
     send: 'Senden',
     clear: 'Löschen',
     models: 'Modelle',
@@ -21,7 +21,7 @@ export const translations = {
   },
   en: {
     // English
-    inputPlaceholder: 'Enter message... (use @ to mention specific AI)',
+    inputPlaceholder: '@',
     send: 'Send',
     clear: 'Clear',
     models: 'Models',
@@ -34,7 +34,7 @@ export const translations = {
   },
   es: {
     // Spanish
-    inputPlaceholder: 'Ingrese mensaje... (use @ para mencionar IA específica)',
+    inputPlaceholder: '@',
     send: 'Enviar',
     clear: 'Borrar',
     models: 'Modelos',
@@ -47,7 +47,7 @@ export const translations = {
   },
   fr: {
     // French
-    inputPlaceholder: 'Entrez le message... (utilisez @ pour mentionner une IA spécifique)',
+    inputPlaceholder: '@',
     send: 'Envoyer',
     clear: 'Effacer',
     models: 'Modèles',
@@ -60,7 +60,7 @@ export const translations = {
   },
   it: {
     // Italian
-    inputPlaceholder: 'Inserisci messaggio... (usa @ per menzionare IA specifica)',
+    inputPlaceholder: '@',
     send: 'Invia',
     clear: 'Cancella',
     models: 'Modelli',
@@ -73,7 +73,7 @@ export const translations = {
   },
   ja: {
     // Japanese
-    inputPlaceholder: 'メッセージを入力... (@を使用して特定のAIをメンション)',
+    inputPlaceholder: '@',
     send: '送信',
     clear: 'クリア',
     models: 'モデル',
@@ -86,7 +86,7 @@ export const translations = {
   },
   ko: {
     // Korean
-    inputPlaceholder: '메시지 입력... (특정 AI를 언급하려면 @ 사용)',
+    inputPlaceholder: '@',
     send: '전송',
     clear: '지우기',
     models: '모델',
@@ -99,7 +99,7 @@ export const translations = {
   },
   pt: {
     // Portuguese
-    inputPlaceholder: 'Digite a mensagem... (use @ para mencionar IA específica)',
+    inputPlaceholder: '@',
     send: 'Enviar',
     clear: 'Limpar',
     models: 'Modelos',
@@ -112,7 +112,7 @@ export const translations = {
   },
   zh: {
     // Chinese
-    inputPlaceholder: '输入消息... (使用 @ 提及特定 AI)',
+    inputPlaceholder: '@',
     send: '发送',
     clear: '清空',
     models: '模型',
@@ -125,7 +125,7 @@ export const translations = {
   },
   ru: {
     // Russian
-    inputPlaceholder: 'Введите сообщение... (используйте @ для упоминания конкретного ИИ)',
+    inputPlaceholder: '@',
     send: 'Отправить',
     clear: 'Очистить',
     models: 'Модели',

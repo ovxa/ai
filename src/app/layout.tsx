@@ -44,34 +44,22 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                // 主题初始化：支持 light/dark/system 三种模式
-                const theme = localStorage.getItem('theme') || 'system';
+                // 主题初始化：支持 light/dark 两种模式
+                const savedTheme = localStorage.getItem('theme');
                 const root = document.documentElement;
 
-                const applyTheme = (themeMode) => {
-                  if (themeMode === 'system') {
-                    // 跟随系统主题
-                    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                    if (systemTheme === 'dark') {
-                      root.classList.add('dark');
-                    } else {
-                      root.classList.remove('dark');
-                    }
-                  } else if (themeMode === 'dark') {
+                // 如果有保存的主题，使用保存的主题；否则根据系统主题设置初始值
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                  if (savedTheme === 'dark') {
                     root.classList.add('dark');
-                  } else {
-                    root.classList.remove('dark');
                   }
-                };
-
-                // 初始化主题
-                applyTheme(theme);
-
-                // 仅当设置为 system 时，监听系统主题变化
-                if (theme === 'system') {
-                  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                    applyTheme('system');
-                  });
+                } else {
+                  // 首次访问：根据系统主题设置初始主题
+                  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  if (systemTheme === 'dark') {
+                    root.classList.add('dark');
+                  }
+                  localStorage.setItem('theme', systemTheme);
                 }
               } catch (e) {}
             `,
