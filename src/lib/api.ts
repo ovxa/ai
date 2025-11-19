@@ -164,6 +164,15 @@ export async function callChatAPI(
       }
     }
 
+    // 如果是用户消息且有 @mentions，添加 @mentions 标签前缀
+    if (msg.role === 'user' && msg.mentions && msg.mentions.length > 0) {
+      const mentionTags = msg.mentions.map(mentionId => {
+        const mentionedAgent = getAgentById(mentionId)
+        return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
+      }).join(' ')
+      content = `[${mentionTags}]: ${msg.content}`
+    }
+
     return {
       role: msg.role,
       content
@@ -174,9 +183,22 @@ export async function callChatAPI(
   // 如果不是，则添加当前消息（避免重复）
   const lastMessage = compressedHistory[compressedHistory.length - 1]
   if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== request.message) {
+    // 从完整历史中找到最后一条用户消息，获取 mentions 信息
+    const lastUserMessage = (request.history || []).filter(m => m.role === 'user').pop()
+    let currentContent = request.message
+
+    // 如果最后一条用户消息有 @mentions，添加标签前缀
+    if (lastUserMessage?.mentions && lastUserMessage.mentions.length > 0) {
+      const mentionTags = lastUserMessage.mentions.map(mentionId => {
+        const mentionedAgent = getAgentById(mentionId)
+        return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
+      }).join(' ')
+      currentContent = `[${mentionTags}]: ${request.message}`
+    }
+
     messages.push({
       role: 'user',
-      content: request.message
+      content: currentContent
     })
   }
 
