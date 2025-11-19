@@ -44,12 +44,12 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
   const t = useTranslation()
 
   // 获取当前流式输出状态
-  const streamingAgentId = useChatStore(state => state.streamingAgentId)
+  const streamingMessages = useChatStore(state => state.streamingMessages)
   const isLoading = useChatStore(state => state.isLoading)
   const stopGeneration = useChatStore(state => state.stopGeneration)
 
   // 判断当前消息是否正在流式输出
-  const isStreaming = message.id === 'streaming' && streamingAgentId === message.agentId
+  const isStreaming = message.id === 'streaming' && message.agentId && streamingMessages.has(message.agentId)
 
   // 判断是否在等待此AI的回复（用户刚发送消息后）
   const isWaitingForResponse = !isUser && isLoading && !isStreaming && message.id !== 'streaming'
@@ -254,8 +254,7 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
 
 export default function MessageList() {
   const messages = useChatStore(state => state.messages)
-  const streamingAgentId = useChatStore(state => state.streamingAgentId)
-  const streamingContent = useChatStore(state => state.streamingContent)
+  const streamingMessages = useChatStore(state => state.streamingMessages)
   const pendingAgents = useChatStore(state => state.pendingAgents)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
@@ -273,7 +272,7 @@ export default function MessageList() {
     if (shouldAutoScroll) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, streamingContent, shouldAutoScroll])
+  }, [messages, streamingMessages, shouldAutoScroll])
 
   if (messages.length === 0) {
     return (
@@ -295,23 +294,24 @@ export default function MessageList() {
         <MessageBubble key={message.id} message={message} />
       ))}
 
-      {/* 流式输出中的消息 */}
-      {streamingAgentId && streamingContent && (
+      {/* 流式输出中的消息 - 支持多个AI同时流式输出 */}
+      {Array.from(streamingMessages.entries()).map(([agentId, content]) => (
         <MessageBubble
+          key={`streaming-${agentId}`}
           message={{
             id: 'streaming',
             role: 'assistant',
-            content: streamingContent,
-            agentId: streamingAgentId,
+            content,
+            agentId,
             timestamp: Date.now()
           }}
         />
-      )}
+      ))}
 
       {/* 等待回复的AI占位符 - 显示生成动画 */}
       {pendingAgents.map(agentId => {
         // 跳过正在流式输出的AI
-        if (streamingAgentId === agentId) return null
+        if (streamingMessages.has(agentId)) return null
 
         const agent = getAgentById(agentId)
         if (!agent) return null

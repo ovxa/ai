@@ -14,14 +14,14 @@ interface ChatStore {
   error: string | null
   apiKey: string | null // 当前使用的 API key
   customEndpoint: string | null // 自定义 API endpoint
-  streamingAgentId: AgentId | null // 当前正在流式输出的 agent
-  streamingContent: string // 流式输出的内容
+  streamingMessages: Map<AgentId, string> // 多个 AI 同时流式输出的内容
   abortController: AbortController | null // 用于中断请求
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
   updateStreamingMessage: (agentId: AgentId, content: string) => void
-  finalizeStreamingMessage: () => void
+  finalizeStreamingMessage: (agentId: AgentId) => void
+  finalizeAllStreamingMessages: () => void
   setAgentStatus: (agentId: AgentId, status: AgentStatus) => void
   setCurrentMentions: (mentions: AgentId[]) => void
   clearCurrentMentions: () => void
@@ -56,8 +56,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   error: null,
   apiKey: null,
   customEndpoint: null,
-  streamingAgentId: null,
-  streamingContent: '',
+  streamingMessages: new Map(),
   abortController: null,
 
   addMessage: (message) => {
@@ -72,9 +71,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   updateStreamingMessage: (agentId, content) => {
-    set({
-      streamingAgentId: agentId,
-      streamingContent: content
+    set(state => {
+      const newStreamingMessages = new Map(state.streamingMessages)
+      newStreamingMessages.set(agentId, content)
+      return { streamingMessages: newStreamingMessages }
     })
     // 当AI开始流式输出时，从pendingAgents中移除
     const { pendingAgents } = get()
@@ -83,19 +83,33 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  finalizeStreamingMessage: () => {
-    const { streamingAgentId, streamingContent, addMessage } = get()
-    if (streamingAgentId && streamingContent) {
+  finalizeStreamingMessage: (agentId) => {
+    const { streamingMessages, addMessage } = get()
+    const content = streamingMessages.get(agentId)
+    if (content) {
       addMessage({
         role: 'assistant',
-        content: streamingContent,
-        agentId: streamingAgentId
+        content,
+        agentId
+      })
+      set(state => {
+        const newStreamingMessages = new Map(state.streamingMessages)
+        newStreamingMessages.delete(agentId)
+        return { streamingMessages: newStreamingMessages }
       })
     }
-    set({
-      streamingAgentId: null,
-      streamingContent: ''
+  },
+
+  finalizeAllStreamingMessages: () => {
+    const { streamingMessages, addMessage } = get()
+    streamingMessages.forEach((content, agentId) => {
+      addMessage({
+        role: 'assistant',
+        content,
+        agentId
+      })
     })
+    set({ streamingMessages: new Map() })
   },
 
   setAgentStatus: (agentId, status) => {
@@ -206,19 +220,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             )
 
             // 完成流式输出
-            finalizeStreamingMessage()
+            finalizeStreamingMessage(agentId)
             setAgentStatus(agentId, 'online')
           } catch (error) {
             console.error(`Error from ${agentId}:`, error)
             const errorMsg = error instanceof Error ? error.message : '抱歉，我现在无法回复。请稍后再试。'
 
             updateStreamingMessage(agentId, errorMsg)
-            finalizeStreamingMessage()
+            finalizeStreamingMessage(agentId)
             setAgentStatus(agentId, 'error')
           }
         }
       } else {
-        // 并行执行：同时向多个 agents 发送（禁用流式输出避免冲突）
+        // 并行执行：同时向多个 agents 发送，支持流式输出
         agentIds.forEach(id => setAgentStatus(id, 'typing'))
 
         const responses = await Promise.allSettled(
@@ -229,7 +243,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             }
 
             try {
-              // 并行模式下不使用流式输出，避免多个 AI 的输出互相覆盖
+              // 并行模式下使用流式输出，每个 AI 有独立的流式回调
               const response = await callChatAPI(
                 {
                   agentId,
@@ -241,46 +255,28 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 agent,
                 apiKey,
                 customEndpoint || undefined,
-                undefined, // 不传递流式回调
+                (chunk) => {
+                  // 每个 AI 独立的流式更新回调
+                  updateStreamingMessage(agentId, chunk)
+                },
                 abortController?.signal // 添加 signal 以支持中断
               )
 
-              return { agentId, content: response.content }
+              // 完成流式输出
+              finalizeStreamingMessage(agentId)
+              setAgentStatus(agentId, 'online')
+              return { agentId, success: true }
             } catch (error) {
+              console.error(`Error from ${agentId}:`, error)
+              const errorMsg = error instanceof Error ? error.message : '抱歉，我现在无法回复。请稍后再试。'
+
+              updateStreamingMessage(agentId, errorMsg)
+              finalizeStreamingMessage(agentId)
               setAgentStatus(agentId, 'error')
               throw error
             }
           })
         )
-
-        // 处理并行响应
-        responses.forEach((result, index) => {
-          const agentId = agentIds[index]
-
-          if (result.status === 'fulfilled') {
-            // 成功：添加消息
-            const { addMessage } = get()
-            addMessage({
-              role: 'assistant',
-              content: result.value.content,
-              agentId
-            })
-            setAgentStatus(agentId, 'online')
-          } else {
-            // 失败：添加错误消息
-            const errorMsg = result.reason instanceof Error
-              ? result.reason.message
-              : '抱歉，我现在无法回复。请稍后再试。'
-
-            const { addMessage } = get()
-            addMessage({
-              role: 'assistant',
-              content: errorMsg,
-              agentId
-            })
-            setAgentStatus(agentId, 'error')
-          }
-        })
 
         // 检查是否所有请求都失败了
         const allFailed = responses.every(r => r.status === 'rejected')
@@ -304,8 +300,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         abortController: null,
         isLoading: false,
         pendingAgents: [],
-        streamingAgentId: null,
-        streamingContent: ''
+        streamingMessages: new Map()
       })
     }
   },

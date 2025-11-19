@@ -151,30 +151,34 @@ export async function callChatAPI(
   const maxTokens = request.isMentioned ? MAX_MENTION_CONTEXT_TOKENS : MAX_CONTEXT_TOKENS
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
-  const messages = [
-    // 使用压缩后的消息历史，给 AI 消息添加名字标识
-    ...compressedHistory.map((msg: Message) => {
-      let content = msg.content
+  // 构建API消息数组，给 AI 消息添加名字标识
+  const messages = compressedHistory.map((msg: Message) => {
+    let content = msg.content
 
-      // 如果是 AI 回复，添加名字前缀
-      if (msg.role === 'assistant' && msg.agentId) {
-        const agent = getAgentById(msg.agentId)
-        if (agent) {
-          const agentName = extractModelShortName(agent.model)
-          content = `[${agentName}]: ${msg.content}`
-        }
+    // 如果是 AI 回复，添加名字前缀
+    if (msg.role === 'assistant' && msg.agentId) {
+      const agent = getAgentById(msg.agentId)
+      if (agent) {
+        const agentName = extractModelShortName(agent.model)
+        content = `[${agentName}]: ${msg.content}`
       }
+    }
 
-      return {
-        role: msg.role,
-        content
-      }
-    }),
-    {
+    return {
+      role: msg.role,
+      content
+    }
+  })
+
+  // 检查最后一条消息是否已经是当前用户消息
+  // 如果不是，则添加当前消息（避免重复）
+  const lastMessage = compressedHistory[compressedHistory.length - 1]
+  if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== request.message) {
+    messages.push({
       role: 'user',
       content: request.message
-    }
-  ]
+    })
+  }
 
   try {
     // 调用 AI API，启用流式输出
