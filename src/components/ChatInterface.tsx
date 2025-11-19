@@ -5,6 +5,7 @@ import ChatInput from './ChatInput'
 import APIKeySettings from './APIKeySettings'
 import ModelSettings from './ModelSettings'
 import ThemeToggle from './ThemeToggle'
+import LanguageSelector from './LanguageSelector'
 import { useTranslation } from '@/lib/i18n'
 
 export default function ChatInterface() {
@@ -34,6 +35,7 @@ export default function ChatInterface() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            <LanguageSelector />
             <ThemeToggle />
             <ModelSettings />
             <APIKeySettings />

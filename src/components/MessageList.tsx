@@ -286,9 +286,10 @@ export default function MessageList() {
   const pendingAgents = useChatStore(state => state.pendingAgents)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
-  // 维护全屏状态，使用稳定的key（基于消息内容hash或agentId+timestamp）
-  const [fullscreenStates, setFullscreenStates] = useState<Record<string, boolean>>({})
   const t = useTranslation()
+  // Maintain fullscreen state using stable key (based on message content hash or agentId+timestamp)
+  const [fullscreenStates, setFullscreenStates] = useState<Record<string, boolean>>({})
+
 
   // 生成稳定的消息key
   const getStableKey = (message: Message, agentId?: string): string => {
@@ -327,8 +328,8 @@ export default function MessageList() {
           <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          <p className="text-lg font-medium">开始对话</p>
-          <p className="text-sm mt-2">使用 @ 提及特定 AI，或直接发送消息</p>
+          <p className="text-lg font-medium">{t.startConversation}</p>
+          <p className="text-sm mt-2">{t.startConversationHint}</p>
         </div>
       </div>
     )
