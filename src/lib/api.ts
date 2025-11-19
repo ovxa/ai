@@ -153,7 +153,7 @@ export async function callChatAPI(
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
   // Build API message array using improved message format (sender → receiver)
-  const messages = compressedHistory.map((msg: Message) => {
+  const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = compressedHistory.map((msg: Message) => {
     let content = msg.content
 
     // If AI response
