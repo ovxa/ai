@@ -44,20 +44,35 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                // 跟随系统主题设置
-                const updateTheme = () => {
-                  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    document.documentElement.classList.add('dark');
+                // 主题初始化：支持 light/dark/system 三种模式
+                const theme = localStorage.getItem('theme') || 'system';
+                const root = document.documentElement;
+
+                const applyTheme = (themeMode) => {
+                  if (themeMode === 'system') {
+                    // 跟随系统主题
+                    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    if (systemTheme === 'dark') {
+                      root.classList.add('dark');
+                    } else {
+                      root.classList.remove('dark');
+                    }
+                  } else if (themeMode === 'dark') {
+                    root.classList.add('dark');
                   } else {
-                    document.documentElement.classList.remove('dark');
+                    root.classList.remove('dark');
                   }
                 };
 
                 // 初始化主题
-                updateTheme();
+                applyTheme(theme);
 
-                // 监听系统主题变化
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+                // 仅当设置为 system 时，监听系统主题变化
+                if (theme === 'system') {
+                  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                    applyTheme('system');
+                  });
+                }
               } catch (e) {}
             `,
           }}
