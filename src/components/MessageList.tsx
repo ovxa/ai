@@ -186,9 +186,16 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
               <div className="absolute bottom-2 right-2 flex items-center gap-2">
                 {/* Generating SVG 动画 */}
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="4" cy="12" r="2" fill="currentColor">
+                      <animate id="spinner_qFRN_1" begin="0;spinner_OcgL_1.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    </circle>
+                    <circle cx="12" cy="12" r="2" fill="currentColor">
+                      <animate begin="spinner_qFRN_1.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    </circle>
+                    <circle cx="20" cy="12" r="2" fill="currentColor">
+                      <animate id="spinner_OcgL_1" begin="spinner_qFRN_1.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    </circle>
                   </svg>
                   <span>{t.generating}</span>
                 </div>
@@ -213,9 +220,16 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Messag
             {/* 等待生成动画 - 在收到用户消息后显示 */}
             {isWaitingForResponse && (
               <div className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="4" cy="12" r="2" fill="currentColor">
+                    <animate id="spinner_qFRN_2" begin="0;spinner_OcgL_2.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                  </circle>
+                  <circle cx="12" cy="12" r="2" fill="currentColor">
+                    <animate begin="spinner_qFRN_2.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                  </circle>
+                  <circle cx="20" cy="12" r="2" fill="currentColor">
+                    <animate id="spinner_OcgL_2" begin="spinner_qFRN_2.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                  </circle>
                 </svg>
                 <span>{t.generating}</span>
               </div>
@@ -336,9 +350,16 @@ export default function MessageList() {
               >
                 {/* 生成动画 */}
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="4" cy="12" r="2" fill="currentColor">
+                      <animate id="spinner_qFRN_3" begin="0;spinner_OcgL_3.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    </circle>
+                    <circle cx="12" cy="12" r="2" fill="currentColor">
+                      <animate begin="spinner_qFRN_3.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    </circle>
+                    <circle cx="20" cy="12" r="2" fill="currentColor">
+                      <animate id="spinner_OcgL_3" begin="spinner_qFRN_3.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    </circle>
                   </svg>
                   <span className="text-sm text-gray-600 dark:text-gray-400">{t.generating}</span>
                 </div>
