@@ -7,8 +7,9 @@ export interface ChatAPIRequest {
   agentId: string
   message: string
   history?: Message[]
-  filterByAgent?: boolean // 是否过滤只显示该 agent 自己的消息
-  isMentioned?: boolean // 是否被 @提及（用于上下文压缩策略）
+  filterByAgent?: boolean // Filter to show only this agent's own messages
+  isMentioned?: boolean // Whether @mentioned (used for context compression strategy)
+  mentionedByAgent?: string // Which AI mentioned this agent (if any, adds system prompt)
 }
 
 export interface ChatAPIResponse {
@@ -22,18 +23,18 @@ export interface APIEndpoint {
 }
 
 const DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
-const MAX_CONTEXT_TOKENS = 200000 // 最大上下文 tokens（无@时）
-const MAX_MENTION_CONTEXT_TOKENS = 20000 // @提及时的最大上下文 tokens
+const MAX_CONTEXT_TOKENS = 200000 // Max context tokens (when not @mentioned)
+const MAX_MENTION_CONTEXT_TOKENS = 20000 // Max context tokens when @mentioned
 
 /**
- * 压缩消息历史，保留最近的消息，旧消息总结
+ * Compress message history, keep recent messages, summarize old messages
  */
 function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TOKENS): Message[] {
-  // 估算总 tokens
+  // Estimate total tokens
   let totalTokens = 0
   const compressedMessages: Message[] = []
 
-  // 从后往前遍历（保留最新消息）
+  // Iterate backwards (preserve recent messages)
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     const msgTokens = estimateTokens(msg.content)
@@ -42,18 +43,18 @@ function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TO
       compressedMessages.unshift(msg)
       totalTokens += msgTokens
     } else {
-      // 超过限制，总结剩余所有旧消息
+      // Exceeded limit, summarize all remaining old messages
       const oldMessages = messages.slice(0, i + 1)
 
-      // 边界检查：只在有旧消息时才添加总结
+      // Boundary check: only add summary if old messages exist
       if (oldMessages.length > 0) {
         const summary = summarizeMessages(oldMessages)
 
-        // 添加总结消息到开头
+        // Add summary message to the beginning
         compressedMessages.unshift({
           id: 'summary',
           role: 'assistant',
-          content: `[历史消息总结]: ${summary}`,
+          content: `[History Summary]: ${summary}`,
           timestamp: oldMessages[0].timestamp
         })
       }
@@ -66,51 +67,51 @@ function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TO
 }
 
 /**
- * 总结多条消息为一句话
+ * Summarize multiple messages into one sentence
  */
 function summarizeMessages(messages: Message[]): string {
-  if (messages.length === 0) return '无历史消息'
+  if (messages.length === 0) return 'No message history'
 
   const userMessages = messages.filter(m => m.role === 'user')
   const assistantMessages = messages.filter(m => m.role === 'assistant')
 
-  const summary = `用户提出了 ${userMessages.length} 个问题，AI 回复了 ${assistantMessages.length} 次。`
+  const summary = `User asked ${userMessages.length} questions, AI responded ${assistantMessages.length} times.`
 
-  // 提取最重要的几个关键词
+  // Extract most important keywords
   const allContent = messages.map(m => m.content).join(' ')
   const keywords = extractKeywords(allContent, 5)
 
   if (keywords.length > 0) {
-    return `${summary} 讨论主题包括：${keywords.join('、')}`
+    return `${summary} Discussion topics include: ${keywords.join(', ')}`
   }
 
   return summary
 }
 
 /**
- * 提取关键词（简单实现）
+ * Extract keywords (simple implementation)
  */
 function extractKeywords(text: string, maxCount: number): string[] {
-  // 移除 Markdown 语法
+  // Remove Markdown syntax
   const cleanText = text
     .replace(/```[\s\S]*?```/g, '')
     .replace(/`[^`]+`/g, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/[*_#>-]/g, '')
 
-  // 分词（简单按空格和标点分割）
+  // Tokenize (simple split by spaces and punctuation)
   const words = cleanText
     .split(/[\s,，。！？；：、\n]+/)
     .filter(w => w.length > 2 && w.length < 20)
 
-  // 统计词频
+  // Count word frequency
   const wordCount = new Map<string, number>()
   words.forEach(word => {
     const count = wordCount.get(word) || 0
     wordCount.set(word, count + 1)
   })
 
-  // 排序并返回前 N 个
+  // Sort and return top N
   return Array.from(wordCount.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, maxCount)
@@ -118,9 +119,9 @@ function extractKeywords(text: string, maxCount: number): string[] {
 }
 
 /**
- * 客户端直接调用 AI API
- * 支持 OpenRouter 和自定义 API endpoints
- * 支持流式输出
+ * Call AI API directly from client
+ * Supports OpenRouter and custom API endpoints
+ * Supports streaming output
  */
 export async function callChatAPI(
   request: ChatAPIRequest,
@@ -136,30 +137,30 @@ export async function callChatAPI(
 
   const endpoint = customEndpoint || DEFAULT_ENDPOINT
 
-  // 构建消息历史
+  // Build message history
   let historyMessages = request.history || []
 
-  // 如果需要过滤，只保留该 agent 自己的消息和用户的消息
+  // If filtering needed, keep only this agent's messages and user messages
   if (request.filterByAgent) {
     historyMessages = historyMessages.filter(
       msg => msg.role === 'user' || msg.agentId === request.agentId
     )
   }
 
-  // 压缩历史消息
-  // 如果被 @提及，使用 20K 限制；否则使用 200K 限制
+  // Compress history messages
+  // If @mentioned, use 20K limit; otherwise use 200K limit
   const maxTokens = request.isMentioned ? MAX_MENTION_CONTEXT_TOKENS : MAX_CONTEXT_TOKENS
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
-  // 构建API消息数组，使用改进的消息格式（发送者 → 接收者）
+  // Build API message array using improved message format (sender → receiver)
   const messages = compressedHistory.map((msg: Message) => {
     let content = msg.content
 
-    // 如果是 AI 回复
+    // If AI response
     if (msg.role === 'assistant' && msg.agentId) {
       const fromAgent = getAgentById(msg.agentId)
       if (fromAgent) {
-        // 如果 AI 回复中有 @mentions，显示 [@from → @to1 @to2]
+        // If AI response has @mentions, show [@from → @to1 @to2]
         if (msg.mentions && msg.mentions.length > 0) {
           const toMentions = msg.mentions.map(mentionId => {
             const mentionedAgent = getAgentById(mentionId)
@@ -167,13 +168,13 @@ export async function callChatAPI(
           }).join(' ')
           content = `[${fromAgent.mention} → ${toMentions}]: ${msg.content}`
         } else {
-          // 没有 mentions，只显示发送者
+          // No mentions, only show sender
           content = `[${fromAgent.mention}]: ${msg.content}`
         }
       }
     }
 
-    // 如果是用户消息且有 @mentions，显示 [User → @agent1 @agent2]
+    // If user message with @mentions, show [User → @agent1 @agent2]
     if (msg.role === 'user' && msg.mentions && msg.mentions.length > 0) {
       const toMentions = msg.mentions.map(mentionId => {
         const mentionedAgent = getAgentById(mentionId)
@@ -188,16 +189,28 @@ export async function callChatAPI(
     }
   })
 
-  // 检查最后一条消息是否已经是当前用户消息
-  // 如果不是，则添加当前消息（避免重复）
+  // If mentioned by another AI, add system prompt at the beginning
+  if (request.mentionedByAgent) {
+    const mentioningAgent = getAgentById(request.mentionedByAgent)
+    const currentAgent = getAgentById(request.agentId)
+    if (mentioningAgent && currentAgent) {
+      messages.unshift({
+        role: 'system',
+        content: `${mentioningAgent.name} (${mentioningAgent.mention}) mentioned you (${currentAgent.mention}) in their response and wants you to participate in the discussion. Please carefully read their message and provide your insights.`
+      })
+    }
+  }
+
+  // Check if last message is already the current user message
+  // If not, add current message (avoid duplication)
   const lastMessage = compressedHistory[compressedHistory.length - 1]
   if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== request.message) {
-    // 从完整历史中找到最后一条用户消息（可能是用户或 AI 发送的）
+    // Find last user message from full history (could be user or AI sent)
     const allMessages = request.history || []
     const lastMsg = allMessages[allMessages.length - 1]
     let currentContent = request.message
 
-    // 如果是用户消息且有 @mentions
+    // If user message with @mentions
     if (lastMsg?.role === 'user' && lastMsg.mentions && lastMsg.mentions.length > 0) {
       const toMentions = lastMsg.mentions.map(mentionId => {
         const mentionedAgent = getAgentById(mentionId)
@@ -205,7 +218,7 @@ export async function callChatAPI(
       }).join(' ')
       currentContent = `[User → ${toMentions}]: ${request.message}`
     }
-    // 如果是 AI 消息且有 @mentions（AI mention AI 的情况）
+    // If AI message with @mentions (AI mention AI case)
     else if (lastMsg?.role === 'assistant' && lastMsg.agentId && lastMsg.mentions && lastMsg.mentions.length > 0) {
       const fromAgent = getAgentById(lastMsg.agentId)
       const toMentions = lastMsg.mentions.map(mentionId => {
@@ -224,7 +237,7 @@ export async function callChatAPI(
   }
 
   try {
-    // 调用 AI API，启用流式输出
+    // Call AI API with streaming enabled
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -237,9 +250,9 @@ export async function callChatAPI(
         model: agent.model,
         messages,
         temperature: 0.7,
-        stream: true // 启用流式输出
+        stream: true // Enable streaming output
       }),
-      signal // 传递 AbortSignal 以支持中断请求
+      signal // Pass AbortSignal to support request interruption
     })
 
     if (!response.ok) {
@@ -255,7 +268,7 @@ export async function callChatAPI(
       }
     }
 
-    // 处理流式响应
+    // Process streaming response
     const reader = response.body?.getReader()
     const decoder = new TextDecoder()
     let fullContent = ''
@@ -266,7 +279,7 @@ export async function callChatAPI(
 
     try {
       while (true) {
-        // 检查是否已中止
+        // Check if aborted
         if (signal?.aborted) {
           await reader.cancel()
           throw new Error('Request aborted')
@@ -289,20 +302,20 @@ export async function callChatAPI(
 
               if (content) {
                 fullContent += content
-                // 调用流式回调
+                // Call streaming callback
                 if (onStream) {
                   onStream(fullContent)
                 }
               }
             } catch (e) {
-              // 忽略解析错误
+              // Ignore parse errors
               console.warn('Failed to parse SSE data:', data)
             }
           }
         }
       }
     } finally {
-      // 确保 reader 被正确释放，及时关闭连接
+      // Ensure reader is properly released and connection closed promptly
       reader.releaseLock()
     }
 
@@ -312,9 +325,9 @@ export async function callChatAPI(
 
     return { content: fullContent }
   } catch (error) {
-    // 处理中止错误
+    // Handle abort errors
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('生成已停止')
+      throw new Error('Generation stopped')
     }
     if (error instanceof Error) {
       throw error
@@ -324,8 +337,8 @@ export async function callChatAPI(
 }
 
 /**
- * 从 URL 参数获取 API keys
- * 支持多个 ?api= 参数
+ * Get API keys from URL parameters
+ * Supports multiple ?api= parameters
  */
 export function getAPIKeysFromURL(): string[] {
   if (typeof window === 'undefined') return []
@@ -333,7 +346,7 @@ export function getAPIKeysFromURL(): string[] {
   const params = new URLSearchParams(window.location.search)
   const apiKeys: string[] = []
 
-  // 获取所有 api 参数
+  // Get all api parameters
   params.forEach((value, key) => {
     if (key === 'api' && value.trim()) {
       apiKeys.push(value.trim())
@@ -344,7 +357,7 @@ export function getAPIKeysFromURL(): string[] {
 }
 
 /**
- * 从 localStorage 获取保存的 API key
+ * Get saved API key from localStorage
  */
 export function getSavedAPIKey(): string | null {
   if (typeof window === 'undefined') return null
@@ -352,7 +365,7 @@ export function getSavedAPIKey(): string | null {
 }
 
 /**
- * 保存 API key 到 localStorage
+ * Save API key to localStorage
  */
 export function saveAPIKey(apiKey: string): void {
   if (typeof window === 'undefined') return
@@ -360,7 +373,7 @@ export function saveAPIKey(apiKey: string): void {
 }
 
 /**
- * 清除保存的 API key
+ * Clear saved API key
  */
 export function clearSavedAPIKey(): void {
   if (typeof window === 'undefined') return
@@ -368,30 +381,30 @@ export function clearSavedAPIKey(): void {
 }
 
 /**
- * 获取可用的 API key
- * 优先级：URL 参数 > localStorage
+ * Get available API key
+ * Priority: URL parameter > localStorage
  */
 export function getAvailableAPIKey(): string | null {
-  // 优先从 URL 获取
+  // First try URL
   const urlKeys = getAPIKeysFromURL()
   if (urlKeys.length > 0) {
     return urlKeys[0]
   }
 
-  // 其次从 localStorage 获取
+  // Then try localStorage
   return getSavedAPIKey()
 }
 
 /**
- * 获取所有可用的 API keys（包括 URL 和 localStorage）
+ * Get all available API keys (from both URL and localStorage)
  */
 export function getAllAPIKeys(): string[] {
   const keys = new Set<string>()
 
-  // 添加 URL 中的 keys
+  // Add keys from URL
   getAPIKeysFromURL().forEach(key => keys.add(key))
 
-  // 添加 localStorage 中的 key
+  // Add key from localStorage
   const savedKey = getSavedAPIKey()
   if (savedKey) {
     keys.add(savedKey)
@@ -401,7 +414,7 @@ export function getAllAPIKeys(): string[] {
 }
 
 /**
- * 保存自定义 API endpoint
+ * Save custom API endpoint
  */
 export function saveCustomEndpoint(endpoint: string): void {
   if (typeof window === 'undefined') return
@@ -409,7 +422,7 @@ export function saveCustomEndpoint(endpoint: string): void {
 }
 
 /**
- * 从 URL 参数获取 API endpoint
+ * Get API endpoint from URL parameters
  */
 export function getEndpointFromURL(): string | null {
   if (typeof window === 'undefined') return null
@@ -418,22 +431,22 @@ export function getEndpointFromURL(): string | null {
 }
 
 /**
- * 获取自定义 API endpoint
- * 优先级：URL 参数 > localStorage
+ * Get custom API endpoint
+ * Priority: URL parameter > localStorage
  */
 export function getCustomEndpoint(): string | null {
   if (typeof window === 'undefined') return null
 
-  // 优先从 URL 获取
+  // First try URL
   const urlEndpoint = getEndpointFromURL()
   if (urlEndpoint) return urlEndpoint
 
-  // 其次从 localStorage 获取
+  // Then try localStorage
   return localStorage.getItem('custom_api_endpoint')
 }
 
 /**
- * 清除自定义 API endpoint
+ * Clear custom API endpoint
  */
 export function clearCustomEndpoint(): void {
   if (typeof window === 'undefined') return
@@ -441,7 +454,7 @@ export function clearCustomEndpoint(): void {
 }
 
 /**
- * 从 API 获取可用模型列表
+ * Fetch available model list from API
  */
 export async function fetchAvailableModels(
   apiKey: string,
@@ -468,7 +481,7 @@ export async function fetchAvailableModels(
     }
 
     const data = await response.json()
-    // OpenRouter 返回 { data: [{ id: "model-name" }] }
+    // OpenRouter returns { data: [{ id: "model-name" }] }
     if (data.data && Array.isArray(data.data)) {
       return data.data.map((model: any) => model.id)
     }
@@ -481,27 +494,24 @@ export async function fetchAvailableModels(
 }
 
 /**
- * 从模型全称提取简称
- * 例如: "anthropic/claude-sonnet-4.5" => "Sonnet"
- *      "openai/gpt-5" => "GPT"
- *      "google/gemini-2.5-pro" => "Gemini"
+ * Extract short name from full model name
+ * Examples: "anthropic/claude-sonnet-4.5" => "Sonnet"
+ *          "openai/gpt-5" => "GPT"
+ *          "google/gemini-2.5-pro" => "Gemini"
  */
 export function extractModelShortName(fullModelName: string): string {
-  // 移除前缀（提供商/）
+  // Remove provider prefix (provider/)
   const withoutProvider = fullModelName.split('/').pop() || fullModelName
 
-  // 提取主要名称
+  // Extract main name
   if (withoutProvider.includes('claude')) {
-    // claude-3-sonnet, claude-sonnet-4.5 => Sonnet
     if (withoutProvider.includes('sonnet')) return 'Sonnet'
     if (withoutProvider.includes('opus')) return 'Opus'
     if (withoutProvider.includes('haiku')) return 'Haiku'
     return 'Claude'
   } else if (withoutProvider.includes('gpt')) {
-    // gpt-4, gpt-5, gpt-4-turbo => GPT
     return 'GPT'
   } else if (withoutProvider.includes('gemini')) {
-    // gemini-pro, gemini-2.5-pro => Gemini
     return 'Gemini'
   } else if (withoutProvider.includes('llama')) {
     return 'Llama'
@@ -509,7 +519,7 @@ export function extractModelShortName(fullModelName: string): string {
     return 'Mistral'
   }
 
-  // 如果无法识别，返回首个单词并大写首字母
+  // If unrecognized, return first word with capitalized first letter
   const firstWord = withoutProvider.split('-')[0]
   return firstWord.charAt(0).toUpperCase() + firstWord.slice(1)
 }

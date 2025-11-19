@@ -44,17 +44,17 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                // 主题初始化：支持 light/dark 两种模式
+                // Theme initialization: supports light/dark modes
                 const savedTheme = localStorage.getItem('theme');
                 const root = document.documentElement;
 
-                // 如果有保存的主题，使用保存的主题；否则根据系统主题设置初始值
+                // If saved theme exists, use it; otherwise use system theme as initial value
                 if (savedTheme === 'dark' || savedTheme === 'light') {
                   if (savedTheme === 'dark') {
                     root.classList.add('dark');
                   }
                 } else {
-                  // 首次访问：根据系统主题设置初始主题
+                  // First visit: set initial theme based on system theme
                   const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                   if (systemTheme === 'dark') {
                     root.classList.add('dark');
