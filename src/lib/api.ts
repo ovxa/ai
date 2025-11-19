@@ -151,26 +151,35 @@ export async function callChatAPI(
   const maxTokens = request.isMentioned ? MAX_MENTION_CONTEXT_TOKENS : MAX_CONTEXT_TOKENS
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
-  // 构建API消息数组，给 AI 消息添加名字标识
+  // 构建API消息数组，使用改进的消息格式（发送者 → 接收者）
   const messages = compressedHistory.map((msg: Message) => {
     let content = msg.content
 
-    // 如果是 AI 回复，添加名字前缀
+    // 如果是 AI 回复
     if (msg.role === 'assistant' && msg.agentId) {
-      const agent = getAgentById(msg.agentId)
-      if (agent) {
-        const agentName = extractModelShortName(agent.model)
-        content = `[${agentName}]: ${msg.content}`
+      const fromAgent = getAgentById(msg.agentId)
+      if (fromAgent) {
+        // 如果 AI 回复中有 @mentions，显示 [@from → @to1 @to2]
+        if (msg.mentions && msg.mentions.length > 0) {
+          const toMentions = msg.mentions.map(mentionId => {
+            const mentionedAgent = getAgentById(mentionId)
+            return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
+          }).join(' ')
+          content = `[${fromAgent.mention} → ${toMentions}]: ${msg.content}`
+        } else {
+          // 没有 mentions，只显示发送者
+          content = `[${fromAgent.mention}]: ${msg.content}`
+        }
       }
     }
 
-    // 如果是用户消息且有 @mentions，添加 @mentions 标签前缀
+    // 如果是用户消息且有 @mentions，显示 [User → @agent1 @agent2]
     if (msg.role === 'user' && msg.mentions && msg.mentions.length > 0) {
-      const mentionTags = msg.mentions.map(mentionId => {
+      const toMentions = msg.mentions.map(mentionId => {
         const mentionedAgent = getAgentById(mentionId)
         return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
       }).join(' ')
-      content = `[${mentionTags}]: ${msg.content}`
+      content = `[User → ${toMentions}]: ${msg.content}`
     }
 
     return {
@@ -183,17 +192,29 @@ export async function callChatAPI(
   // 如果不是，则添加当前消息（避免重复）
   const lastMessage = compressedHistory[compressedHistory.length - 1]
   if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== request.message) {
-    // 从完整历史中找到最后一条用户消息，获取 mentions 信息
-    const lastUserMessage = (request.history || []).filter(m => m.role === 'user').pop()
+    // 从完整历史中找到最后一条用户消息（可能是用户或 AI 发送的）
+    const allMessages = request.history || []
+    const lastMsg = allMessages[allMessages.length - 1]
     let currentContent = request.message
 
-    // 如果最后一条用户消息有 @mentions，添加标签前缀
-    if (lastUserMessage?.mentions && lastUserMessage.mentions.length > 0) {
-      const mentionTags = lastUserMessage.mentions.map(mentionId => {
+    // 如果是用户消息且有 @mentions
+    if (lastMsg?.role === 'user' && lastMsg.mentions && lastMsg.mentions.length > 0) {
+      const toMentions = lastMsg.mentions.map(mentionId => {
         const mentionedAgent = getAgentById(mentionId)
         return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
       }).join(' ')
-      currentContent = `[${mentionTags}]: ${request.message}`
+      currentContent = `[User → ${toMentions}]: ${request.message}`
+    }
+    // 如果是 AI 消息且有 @mentions（AI mention AI 的情况）
+    else if (lastMsg?.role === 'assistant' && lastMsg.agentId && lastMsg.mentions && lastMsg.mentions.length > 0) {
+      const fromAgent = getAgentById(lastMsg.agentId)
+      const toMentions = lastMsg.mentions.map(mentionId => {
+        const mentionedAgent = getAgentById(mentionId)
+        return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
+      }).join(' ')
+      if (fromAgent) {
+        currentContent = `[${fromAgent.mention} → ${toMentions}]: ${request.message}`
+      }
     }
 
     messages.push({
