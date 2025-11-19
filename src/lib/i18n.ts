@@ -10,7 +10,6 @@ export const translations = {
     // German
     inputPlaceholder: 'Nachricht eingeben... (@ verwenden, um spezifische KI zu erwähnen)',
     send: 'Senden',
-    sendHint: 'Enter zum Senden • Shift+Enter für Zeilenumbruch',
     clear: 'Löschen',
     models: 'Modelle',
     apiKey: 'API-Schlüssel',
@@ -24,7 +23,6 @@ export const translations = {
     // English
     inputPlaceholder: 'Enter message... (use @ to mention specific AI)',
     send: 'Send',
-    sendHint: 'Enter to send • Shift+Enter for new line',
     clear: 'Clear',
     models: 'Models',
     apiKey: 'API Key',
@@ -38,7 +36,6 @@ export const translations = {
     // Spanish
     inputPlaceholder: 'Ingrese mensaje... (use @ para mencionar IA específica)',
     send: 'Enviar',
-    sendHint: 'Enter para enviar • Shift+Enter para nueva línea',
     clear: 'Borrar',
     models: 'Modelos',
     apiKey: 'Clave API',
@@ -52,7 +49,6 @@ export const translations = {
     // French
     inputPlaceholder: 'Entrez le message... (utilisez @ pour mentionner une IA spécifique)',
     send: 'Envoyer',
-    sendHint: 'Enter pour envoyer • Shift+Enter pour nouvelle ligne',
     clear: 'Effacer',
     models: 'Modèles',
     apiKey: 'Clé API',
@@ -66,7 +62,6 @@ export const translations = {
     // Italian
     inputPlaceholder: 'Inserisci messaggio... (usa @ per menzionare IA specifica)',
     send: 'Invia',
-    sendHint: 'Enter per inviare • Shift+Enter per nuova riga',
     clear: 'Cancella',
     models: 'Modelli',
     apiKey: 'Chiave API',
@@ -80,7 +75,6 @@ export const translations = {
     // Japanese
     inputPlaceholder: 'メッセージを入力... (@を使用して特定のAIをメンション)',
     send: '送信',
-    sendHint: 'Enterで送信 • Shift+Enterで改行',
     clear: 'クリア',
     models: 'モデル',
     apiKey: 'APIキー',
@@ -94,7 +88,6 @@ export const translations = {
     // Korean
     inputPlaceholder: '메시지 입력... (특정 AI를 언급하려면 @ 사용)',
     send: '전송',
-    sendHint: 'Enter로 전송 • Shift+Enter로 줄바꿈',
     clear: '지우기',
     models: '모델',
     apiKey: 'API 키',
@@ -108,7 +101,6 @@ export const translations = {
     // Portuguese
     inputPlaceholder: 'Digite a mensagem... (use @ para mencionar IA específica)',
     send: 'Enviar',
-    sendHint: 'Enter para enviar • Shift+Enter para nova linha',
     clear: 'Limpar',
     models: 'Modelos',
     apiKey: 'Chave API',
@@ -122,7 +114,6 @@ export const translations = {
     // Chinese
     inputPlaceholder: '输入消息... (使用 @ 提及特定 AI)',
     send: '发送',
-    sendHint: 'Enter 发送 • Shift+Enter 换行',
     clear: '清空',
     models: '模型',
     apiKey: 'API 密钥',
@@ -136,7 +127,6 @@ export const translations = {
     // Russian
     inputPlaceholder: 'Введите сообщение... (используйте @ для упоминания конкретного ИИ)',
     send: 'Отправить',
-    sendHint: 'Enter для отправки • Shift+Enter для новой строки',
     clear: 'Очистить',
     models: 'Модели',
     apiKey: 'API ключ',
