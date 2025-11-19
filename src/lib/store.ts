@@ -27,7 +27,7 @@ interface ChatStore {
   setCurrentMentions: (mentions: AgentId[]) => void
   clearCurrentMentions: () => void
   sendMessage: (content: string) => Promise<void>
-  sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean) => Promise<void>
+  sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean, mentionedBy?: AgentId) => Promise<void>
   stopGeneration: (agentId: AgentId) => void
   stopAllGeneration: () => void
   setAPIKey: (key: string) => void
@@ -115,7 +115,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         console.log(`[AI Mention Chain] ${agentId} mentioned ${mentions.join(', ')} (count: ${newCount}/5)`)
 
         // 同步触发被 mention 的 AI（不使用 setTimeout，避免竞争条件）
-        sendToSpecificAgents(content, mentions, false, false).catch(error => {
+        // 传递 agentId 作为 mentionedBy，这样被 mention 的 AI 会收到 system prompt
+        sendToSpecificAgents(content, mentions, false, false, agentId).catch(error => {
           console.error('Error in AI mention chain:', error)
         })
       } else if (mentions.length > 0) {
@@ -189,7 +190,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false) => {
+  sendToSpecificAgents: async (content, agentIds, sequential = false, filterByAgent = false, mentionedBy?: AgentId) => {
     const { updateStreamingMessage, finalizeStreamingMessage, setAgentStatus, apiKey, customEndpoint, messages } = get()
 
     // 检查 API key
@@ -240,7 +241,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                 message: content,
                 history: get().messages, // 实时获取最新的消息历史
                 filterByAgent, // 传递过滤参数
-                isMentioned // 传递是否被 @提及
+                isMentioned, // 传递是否被 @提及
+                mentionedByAgent: mentionedBy // 传递是被哪个 AI 提及
               },
               agent,
               apiKey,
@@ -286,7 +288,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
                   message: content,
                   history: get().messages,
                   filterByAgent, // 传递过滤参数
-                  isMentioned // 传递是否被 @提及
+                  isMentioned, // 传递是否被 @提及
+                  mentionedByAgent: mentionedBy // 传递是被哪个 AI 提及
                 },
                 agent,
                 apiKey,

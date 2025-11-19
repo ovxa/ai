@@ -9,6 +9,7 @@ export interface ChatAPIRequest {
   history?: Message[]
   filterByAgent?: boolean // 是否过滤只显示该 agent 自己的消息
   isMentioned?: boolean // 是否被 @提及（用于上下文压缩策略）
+  mentionedByAgent?: string // 被哪个 AI @提及（如果有，则添加 system prompt）
 }
 
 export interface ChatAPIResponse {
@@ -187,6 +188,18 @@ export async function callChatAPI(
       content
     }
   })
+
+  // 如果被其他 AI @提及，在开头添加 system prompt
+  if (request.mentionedByAgent) {
+    const mentioningAgent = getAgentById(request.mentionedByAgent)
+    const currentAgent = getAgentById(request.agentId)
+    if (mentioningAgent && currentAgent) {
+      messages.unshift({
+        role: 'system',
+        content: `${mentioningAgent.name} (${mentioningAgent.mention}) 在他们的回复中提及了你 (${currentAgent.mention})，希望你参与讨论。请仔细阅读他们的消息，并提供你的见解。`
+      })
+    }
+  }
 
   // 检查最后一条消息是否已经是当前用户消息
   // 如果不是，则添加当前消息（避免重复）
