@@ -47,9 +47,35 @@ export const getAllAgentIds = () => {
 }
 
 /**
+ * 从 URL 参数获取模型配置
+ * 支持格式：?models=model1,model2,model3
+ */
+export const getModelsFromURL = (): string[] | null => {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  const modelsParam = params.get('models')
+
+  if (modelsParam) {
+    // 将逗号分隔的字符串转换为数组，并过滤空字符串
+    const models = modelsParam.split(',').map(m => m.trim()).filter(m => m.length > 0)
+    return models.length > 0 ? models : null
+  }
+
+  return null
+}
+
+/**
  * 获取自定义模型配置（完整列表）
+ * 优先级：URL 参数 > localStorage > 默认值
  */
 export const getCustomModels = (): string[] => {
+  // 优先从 URL 获取
+  const urlModels = getModelsFromURL()
+  if (urlModels && urlModels.length > 0) {
+    return urlModels
+  }
+
+  // 其次从 localStorage 获取
   if (typeof window === 'undefined') return DEFAULT_MODELS
   const saved = localStorage.getItem('ai_custom_models')
   return saved ? JSON.parse(saved) : DEFAULT_MODELS
