@@ -236,6 +236,9 @@ export async function callChatAPI(
     })
   }
 
+  // Declare fullContent before try block so it's accessible in catch
+  let fullContent = ''
+
   try {
     // Call AI API with streaming enabled
     const response = await fetch(endpoint, {
@@ -271,7 +274,6 @@ export async function callChatAPI(
     // Process streaming response
     const reader = response.body?.getReader()
     const decoder = new TextDecoder()
-    let fullContent = ''
 
     if (!reader) {
       throw new Error('No response body')
@@ -325,9 +327,9 @@ export async function callChatAPI(
 
     return { content: fullContent }
   } catch (error) {
-    // Handle abort errors
+    // Handle abort errors - silently return current content without interrupting user
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Generation stopped')
+      return { content: fullContent || '' }
     }
     if (error instanceof Error) {
       throw error

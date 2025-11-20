@@ -26,6 +26,7 @@ interface ChatStore {
   setAgentStatus: (agentId: AgentId, status: AgentStatus) => void
   setCurrentMentions: (mentions: AgentId[]) => void
   clearCurrentMentions: () => void
+  clearError: () => void
   sendMessage: (content: string) => Promise<void>
   sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean, mentionedBy?: AgentId) => Promise<void>
   stopGeneration: (agentId: AgentId) => void
@@ -158,6 +159,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   clearCurrentMentions: () => {
     set({ currentMentions: [] })
+  },
+
+  clearError: () => {
+    set({ error: null })
   },
 
   sendMessage: async (content) => {
