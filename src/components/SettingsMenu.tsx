@@ -76,11 +76,11 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
       {/* Settings icon button */}
       <button
         onClick={() => handleOpenChange(!isOpen)}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="p-2 rounded-lg hover:bg-accent transition-colors"
         title={t.settings || 'Settings'}
       >
         <svg
-          className="w-6 h-6 text-gray-700 dark:text-gray-300"
+          className="w-6 h-6 text-foreground"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -110,8 +110,8 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
           />
 
           {/* Menu panel */}
-          <div className="absolute left-0 top-full mt-2 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[320px] max-w-md py-2">
-            <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 mb-1">
+          <div className="absolute left-0 top-full mt-2 z-30 bg-card rounded-lg shadow-xl border border-border min-w-[320px] max-w-md py-2">
+            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
               {t.settings || 'Settings'}
             </div>
 
@@ -120,17 +120,17 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
               <div>
                 <button
                   onClick={() => toggleSection('language')}
-                  className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="w-full flex items-center justify-between py-3 px-4 hover:bg-accent transition-colors"
                 >
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-foreground">
                     {t.language}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-sm text-muted-foreground">
                       {languageNames[currentLanguage]}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-500 transition-transform ${
+                      className={`w-4 h-4 text-muted-foreground transition-transform ${
                         expandedSection === 'language' ? 'rotate-180' : ''
                       }`}
                       fill="none"
@@ -143,15 +143,15 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
                 </button>
 
                 {expandedSection === 'language' && (
-                  <div className="bg-gray-50 dark:bg-gray-900/50 py-2 px-2 space-y-1 max-h-64 overflow-y-auto">
+                  <div className="bg-accent py-2 px-2 space-y-1 max-h-64 overflow-y-auto">
                     {(Object.keys(languageNames) as Language[]).map((lang) => (
                       <button
                         key={lang}
                         onClick={() => handleLanguageChange(lang)}
                         className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
                           currentLanguage === lang
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            ? 'bg-primary text-primary-foreground font-medium'
+                            : 'hover:bg-secondary text-foreground'
                         }`}
                       >
                         {languageNames[lang]}
@@ -164,17 +164,17 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
               {/* Theme Toggle */}
               <button
                 onClick={handleThemeToggle}
-                className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                className="w-full flex items-center justify-between py-3 px-4 hover:bg-accent transition-colors"
               >
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-foreground">
                   {t.theme}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                  <span className="text-sm text-muted-foreground capitalize">
                     {theme}
                   </span>
                   <svg
-                    className="w-5 h-5 text-gray-600 dark:text-gray-400"
+                    className="w-5 h-5 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -204,9 +204,9 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
                   const button = modelSettingsRef.current?.querySelector('button')
                   button?.click()
                 }}
-                className="w-full py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between"
+                className="w-full py-3 px-4 hover:bg-accent transition-colors flex items-center justify-between"
               >
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-foreground">
                   {t.models}
                 </span>
                 <div ref={modelSettingsRef} onClick={(e) => e.stopPropagation()}>
@@ -220,9 +220,9 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
                   const button = apiKeySettingsRef.current?.querySelector('button')
                   button?.click()
                 }}
-                className="w-full py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between"
+                className="w-full py-3 px-4 hover:bg-accent transition-colors flex items-center justify-between"
               >
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-foreground">
                   {t.apiKey}
                 </span>
                 <div ref={apiKeySettingsRef} onClick={(e) => e.stopPropagation()}>

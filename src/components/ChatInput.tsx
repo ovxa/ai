@@ -176,9 +176,9 @@ export default function ChatInput() {
             onKeyDown={handleKeyDown}
             placeholder={t.inputPlaceholder}
             rows={1}
-            className="w-full px-4 py-3 min-h-[48px] rounded-lg border border-gray-300 dark:border-gray-600
-                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+            className="w-full px-4 py-3 min-h-[48px] rounded-lg border border-input
+                     bg-background text-foreground
+                     focus:ring-2 focus:ring-ring focus:border-transparent
                      resize-none overflow-hidden"
             style={{ maxHeight: '200px' }}
           />
@@ -188,8 +188,8 @@ export default function ChatInput() {
         <button
           onClick={handleSubmit}
           disabled={!input.trim()}
-          className="px-6 py-3 h-[48px] bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400
-                   text-white font-medium rounded-lg transition-colors
+          className="px-6 py-3 h-[48px] bg-primary hover:bg-primary/90 disabled:bg-muted
+                   text-primary-foreground disabled:text-muted-foreground font-medium rounded-lg transition-colors
                    disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
         >
           {t.send}
