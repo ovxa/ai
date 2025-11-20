@@ -196,63 +196,19 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
               </button>
 
               {/* Models Settings */}
-              <div>
-                <button
-                  onClick={() => toggleSection('models')}
-                  className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.models}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-gray-500 transition-transform ${
-                      expandedSection === 'models' ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {expandedSection === 'models' && (
-                  <div className="bg-gray-50 dark:bg-gray-900/50 py-3 px-4">
-                    <div className="flex justify-center">
-                      <ModelSettings />
-                    </div>
-                  </div>
-                )}
+              <div className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t.models}
+                </span>
+                <ModelSettings />
               </div>
 
               {/* API Key Settings */}
-              <div>
-                <button
-                  onClick={() => toggleSection('apikey')}
-                  className="w-full flex items-center justify-between py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t.apiKey}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-gray-500 transition-transform ${
-                      expandedSection === 'apikey' ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {expandedSection === 'apikey' && (
-                  <div className="bg-gray-50 dark:bg-gray-900/50 py-3 px-4">
-                    <div className="flex justify-center">
-                      <APIKeySettings />
-                    </div>
-                  </div>
-                )}
+              <div className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t.apiKey}
+                </span>
+                <APIKeySettings />
               </div>
             </div>
           </div>
