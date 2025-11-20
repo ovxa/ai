@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Language, languageNames, getCurrentLanguage, saveLanguage, useTranslation } from '@/lib/i18n'
 import ModelSettings from './ModelSettings'
 import APIKeySettings from './APIKeySettings'
@@ -17,6 +17,9 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
   const [mounted, setMounted] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState<Language>('en')
   const [theme, setTheme] = useState<Theme>('light')
+
+  const modelSettingsRef = useRef<HTMLDivElement>(null)
+  const apiKeySettingsRef = useRef<HTMLDivElement>(null)
 
   const t = useTranslation()
 
@@ -196,20 +199,36 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
               </button>
 
               {/* Models Settings */}
-              <div className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const button = modelSettingsRef.current?.querySelector('button')
+                  button?.click()
+                }}
+                className="w-full py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between"
+              >
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t.models}
                 </span>
-                <ModelSettings />
-              </div>
+                <div ref={modelSettingsRef} onClick={(e) => e.stopPropagation()}>
+                  <ModelSettings />
+                </div>
+              </button>
 
               {/* API Key Settings */}
-              <div className="py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const button = apiKeySettingsRef.current?.querySelector('button')
+                  button?.click()
+                }}
+                className="w-full py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between"
+              >
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t.apiKey}
                 </span>
-                <APIKeySettings />
-              </div>
+                <div ref={apiKeySettingsRef} onClick={(e) => e.stopPropagation()}>
+                  <APIKeySettings />
+                </div>
+              </button>
             </div>
           </div>
         </>
