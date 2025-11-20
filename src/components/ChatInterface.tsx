@@ -20,9 +20,14 @@ export default function ChatInterface() {
   }, [])
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 py-2 sm:py-3 lg:py-4 px-2 sm:px-4 lg:px-0">
+    <div className="h-screen relative overflow-hidden">
+      {/* Messages area - fullscreen, behind overlays */}
+      <div className="absolute inset-0 bg-white dark:bg-gray-800">
+        <MessageList />
+      </div>
+
+      {/* Header with gradient fade - positioned over messages */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-white via-white/95 to-transparent dark:from-gray-900 dark:via-gray-900/95 dark:to-transparent py-2 sm:py-3 lg:py-4 px-2 sm:px-4 lg:px-0 pb-8 sm:pb-12">
         <div className="w-full lg:max-w-7xl lg:mx-auto">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-shrink">
@@ -82,17 +87,8 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      {/* Messages area - scrollable */}
-      <div className="flex-1 overflow-hidden px-2 sm:px-4 lg:px-0 pb-20 sm:pb-24">
-        <div className="w-full lg:max-w-7xl lg:mx-auto h-full">
-          <div className="h-full bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-            <MessageList />
-          </div>
-        </div>
-      </div>
-
-      {/* Fixed input at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-2 sm:p-4">
+      {/* Fixed input at bottom with gradient fade - positioned over messages */}
+      <div className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-50 via-gray-50/95 to-transparent dark:from-gray-900 dark:via-gray-900/95 dark:to-transparent pt-8 sm:pt-12 pb-2 sm:pb-4 px-2 sm:px-4">
         <div className="w-full lg:max-w-7xl lg:mx-auto">
           <ChatInput />
         </div>
