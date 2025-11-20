@@ -2,6 +2,7 @@ import { AIAgent } from '@/types'
 import { Message } from '@/types'
 import { estimateTokens } from '@/utils/markdown'
 import { getAgentById } from '@/lib/agents'
+import { getTranslation } from './i18n'
 
 export interface ChatAPIRequest {
   agentId: string
@@ -131,8 +132,10 @@ export async function callChatAPI(
   onStream?: (content: string) => void,
   signal?: AbortSignal
 ): Promise<ChatAPIResponse> {
+  const t = getTranslation()
+
   if (!apiKey) {
-    throw new Error('API key is required. Please add ?api=YOUR_KEY to the URL or set it in settings.')
+    throw new Error(t.errors.apiKeyRequired)
   }
 
   const endpoint = customEndpoint || DEFAULT_ENDPOINT
@@ -263,11 +266,11 @@ export async function callChatAPI(
       console.error('API error:', errorText)
 
       if (response.status === 401) {
-        throw new Error('Invalid API key. Please check your API key.')
+        throw new Error(t.errors.invalidApiKey)
       } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.')
+        throw new Error(t.errors.rateLimitExceeded)
       } else {
-        throw new Error(`API error: ${response.status}`)
+        throw new Error(`${t.errors.apiError}: ${response.status}`)
       }
     }
 
@@ -276,7 +279,7 @@ export async function callChatAPI(
     const decoder = new TextDecoder()
 
     if (!reader) {
-      throw new Error('No response body')
+      throw new Error(t.errors.noResponseBody)
     }
 
     try {
@@ -284,7 +287,7 @@ export async function callChatAPI(
         // Check if aborted
         if (signal?.aborted) {
           await reader.cancel()
-          throw new Error('Request aborted')
+          throw new Error(t.errors.requestAborted)
         }
 
         const { done, value } = await reader.read()
@@ -322,7 +325,7 @@ export async function callChatAPI(
     }
 
     if (!fullContent) {
-      throw new Error('No content in response')
+      throw new Error(t.errors.noContent)
     }
 
     return { content: fullContent }
@@ -334,7 +337,7 @@ export async function callChatAPI(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error('Failed to call API')
+    throw new Error(t.errors.apiCallFailed)
   }
 }
 
@@ -544,7 +547,8 @@ export async function fetchAvailableModels(
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch models: ${response.status}`)
+      const t = getTranslation()
+      throw new Error(`${t.errors.fetchModelsFailed}: ${response.status}`)
     }
 
     const data = await response.json()

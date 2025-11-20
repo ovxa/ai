@@ -38,6 +38,19 @@ export const translations = {
     language: 'Sprache',
     settings: 'Einstellungen',
     theme: 'Thema',
+    errors: {
+      allAisFailed: 'Alle KIs konnten nicht antworten, bitte überprüfen Sie API-Schlüssel und Netzwerkverbindung',
+      apiKeyRequired: 'Bitte setzen Sie zuerst den API-Schlüssel. Sie können ?api=IHR_SCHLÜSSEL zur URL hinzufügen oder ihn in den Einstellungen konfigurieren.',
+      sendMessageFailed: 'Nachricht konnte nicht gesendet werden, bitte erneut versuchen',
+      invalidApiKey: 'Ungültiger API-Schlüssel. Bitte überprüfen Sie Ihren API-Schlüssel.',
+      rateLimitExceeded: 'Ratenlimit überschritten. Bitte versuchen Sie es später erneut.',
+      apiError: 'API-Fehler',
+      noResponseBody: 'Keine Antwort vom Server',
+      requestAborted: 'Anfrage abgebrochen',
+      noContent: 'Kein Inhalt in der Antwort',
+      apiCallFailed: 'API-Aufruf fehlgeschlagen',
+      fetchModelsFailed: 'Modelle konnten nicht abgerufen werden',
+    },
   },
   en: {
     // English
@@ -58,6 +71,19 @@ export const translations = {
     language: 'Language',
     settings: 'Settings',
     theme: 'Theme',
+    errors: {
+      allAisFailed: 'All AIs failed to respond, please check API Key and network connection',
+      apiKeyRequired: 'Please set API Key first. You can add ?api=YOUR_KEY to the URL or configure it in settings.',
+      sendMessageFailed: 'Failed to send message, please retry',
+      invalidApiKey: 'Invalid API key. Please check your API key.',
+      rateLimitExceeded: 'Rate limit exceeded. Please try again later.',
+      apiError: 'API error',
+      noResponseBody: 'No response body',
+      requestAborted: 'Request aborted',
+      noContent: 'No content in response',
+      apiCallFailed: 'Failed to call API',
+      fetchModelsFailed: 'Failed to fetch models',
+    },
   },
   es: {
     // Spanish
@@ -78,6 +104,19 @@ export const translations = {
     language: 'Idioma',
     settings: 'Configuración',
     theme: 'Tema',
+    errors: {
+      allAisFailed: 'Todas las IAs no pudieron responder, por favor verifique la clave API y la conexión de red',
+      apiKeyRequired: 'Por favor configure primero la clave API. Puede agregar ?api=SU_CLAVE a la URL o configurarla en ajustes.',
+      sendMessageFailed: 'No se pudo enviar el mensaje, por favor reintente',
+      invalidApiKey: 'Clave API inválida. Por favor verifique su clave API.',
+      rateLimitExceeded: 'Límite de tasa excedido. Por favor intente nuevamente más tarde.',
+      apiError: 'Error de API',
+      noResponseBody: 'Sin respuesta del servidor',
+      requestAborted: 'Solicitud abortada',
+      noContent: 'Sin contenido en la respuesta',
+      apiCallFailed: 'Fallo en la llamada a la API',
+      fetchModelsFailed: 'No se pudieron obtener los modelos',
+    },
   },
   fr: {
     // French
@@ -98,6 +137,19 @@ export const translations = {
     language: 'Langue',
     settings: 'Paramètres',
     theme: 'Thème',
+    errors: {
+      allAisFailed: 'Toutes les IAs n\'ont pas pu répondre, veuillez vérifier la clé API et la connexion réseau',
+      apiKeyRequired: 'Veuillez d\'abord définir la clé API. Vous pouvez ajouter ?api=VOTRE_CLE à l\'URL ou la configurer dans les paramètres.',
+      sendMessageFailed: 'Échec de l\'envoi du message, veuillez réessayer',
+      invalidApiKey: 'Clé API invalide. Veuillez vérifier votre clé API.',
+      rateLimitExceeded: 'Limite de débit dépassée. Veuillez réessayer plus tard.',
+      apiError: 'Erreur API',
+      noResponseBody: 'Aucune réponse du serveur',
+      requestAborted: 'Requête abandonnée',
+      noContent: 'Aucun contenu dans la réponse',
+      apiCallFailed: 'Échec de l\'appel API',
+      fetchModelsFailed: 'Échec de la récupération des modèles',
+    },
   },
   it: {
     // Italian
@@ -118,6 +170,19 @@ export const translations = {
     language: 'Lingua',
     settings: 'Impostazioni',
     theme: 'Tema',
+    errors: {
+      allAisFailed: 'Tutte le IA non hanno potuto rispondere, controlla la chiave API e la connessione di rete',
+      apiKeyRequired: 'Imposta prima la chiave API. Puoi aggiungere ?api=TUA_CHIAVE all\'URL o configurarla nelle impostazioni.',
+      sendMessageFailed: 'Impossibile inviare il messaggio, riprova',
+      invalidApiKey: 'Chiave API non valida. Controlla la tua chiave API.',
+      rateLimitExceeded: 'Limite di velocità superato. Riprova più tardi.',
+      apiError: 'Errore API',
+      noResponseBody: 'Nessuna risposta dal server',
+      requestAborted: 'Richiesta annullata',
+      noContent: 'Nessun contenuto nella risposta',
+      apiCallFailed: 'Chiamata API fallita',
+      fetchModelsFailed: 'Impossibile recuperare i modelli',
+    },
   },
   ja: {
     // Japanese
@@ -138,6 +203,19 @@ export const translations = {
     language: '言語',
     settings: '設定',
     theme: 'テーマ',
+    errors: {
+      allAisFailed: 'すべてのAIが応答できませんでした。APIキーとネットワーク接続を確認してください',
+      apiKeyRequired: '最初にAPIキーを設定してください。URLに ?api=YOUR_KEY を追加するか、設定で構成できます。',
+      sendMessageFailed: 'メッセージの送信に失敗しました。再試行してください',
+      invalidApiKey: '無効なAPIキーです。APIキーを確認してください。',
+      rateLimitExceeded: 'レート制限を超えました。後でもう一度お試しください。',
+      apiError: 'APIエラー',
+      noResponseBody: 'サーバーからの応答がありません',
+      requestAborted: 'リクエストが中止されました',
+      noContent: '応答にコンテンツがありません',
+      apiCallFailed: 'API呼び出しに失敗しました',
+      fetchModelsFailed: 'モデルの取得に失敗しました',
+    },
   },
   ko: {
     // Korean
@@ -158,6 +236,19 @@ export const translations = {
     language: '언어',
     settings: '설정',
     theme: '테마',
+    errors: {
+      allAisFailed: '모든 AI가 응답하지 못했습니다. API 키와 네트워크 연결을 확인하세요',
+      apiKeyRequired: '먼저 API 키를 설정하세요. URL에 ?api=YOUR_KEY를 추가하거나 설정에서 구성할 수 있습니다.',
+      sendMessageFailed: '메시지 전송에 실패했습니다. 다시 시도하세요',
+      invalidApiKey: '잘못된 API 키입니다. API 키를 확인하세요.',
+      rateLimitExceeded: '속도 제한을 초과했습니다. 나중에 다시 시도하세요.',
+      apiError: 'API 오류',
+      noResponseBody: '서버 응답 없음',
+      requestAborted: '요청이 중단되었습니다',
+      noContent: '응답에 내용이 없습니다',
+      apiCallFailed: 'API 호출 실패',
+      fetchModelsFailed: '모델을 가져오지 못했습니다',
+    },
   },
   pt: {
     // Portuguese
@@ -178,6 +269,19 @@ export const translations = {
     language: 'Idioma',
     settings: 'Configurações',
     theme: 'Tema',
+    errors: {
+      allAisFailed: 'Todas as IAs falharam ao responder, verifique a chave API e a conexão de rede',
+      apiKeyRequired: 'Configure a chave API primeiro. Você pode adicionar ?api=SUA_CHAVE à URL ou configurá-la nas configurações.',
+      sendMessageFailed: 'Falha ao enviar mensagem, tente novamente',
+      invalidApiKey: 'Chave API inválida. Verifique sua chave API.',
+      rateLimitExceeded: 'Limite de taxa excedido. Tente novamente mais tarde.',
+      apiError: 'Erro de API',
+      noResponseBody: 'Sem resposta do servidor',
+      requestAborted: 'Solicitação abortada',
+      noContent: 'Sem conteúdo na resposta',
+      apiCallFailed: 'Falha na chamada da API',
+      fetchModelsFailed: 'Falha ao buscar modelos',
+    },
   },
   zh: {
     // Chinese
@@ -198,6 +302,19 @@ export const translations = {
     language: '语言',
     settings: '设置',
     theme: '主题',
+    errors: {
+      allAisFailed: '所有 AI 都无法响应，请检查 API 密钥和网络连接',
+      apiKeyRequired: '请先设置 API 密钥。您可以在 URL 中添加 ?api=YOUR_KEY 或在设置中配置。',
+      sendMessageFailed: '发送消息失败，请重试',
+      invalidApiKey: '无效的 API 密钥。请检查您的 API 密钥。',
+      rateLimitExceeded: '超出速率限制。请稍后再试。',
+      apiError: 'API 错误',
+      noResponseBody: '服务器无响应',
+      requestAborted: '请求已中止',
+      noContent: '响应中没有内容',
+      apiCallFailed: 'API 调用失败',
+      fetchModelsFailed: '获取模型失败',
+    },
   },
   ru: {
     // Russian
@@ -218,6 +335,19 @@ export const translations = {
     language: 'Язык',
     settings: 'Настройки',
     theme: 'Тема',
+    errors: {
+      allAisFailed: 'Все ИИ не смогли ответить, проверьте API ключ и сетевое соединение',
+      apiKeyRequired: 'Сначала установите API ключ. Вы можете добавить ?api=YOUR_KEY к URL или настроить его в настройках.',
+      sendMessageFailed: 'Не удалось отправить сообщение, попробуйте еще раз',
+      invalidApiKey: 'Неверный API ключ. Проверьте ваш API ключ.',
+      rateLimitExceeded: 'Превышен лимит запросов. Попробуйте позже.',
+      apiError: 'Ошибка API',
+      noResponseBody: 'Нет ответа от сервера',
+      requestAborted: 'Запрос прерван',
+      noContent: 'Нет содержимого в ответе',
+      apiCallFailed: 'Не удалось вызвать API',
+      fetchModelsFailed: 'Не удалось получить модели',
+    },
   },
 }
 
@@ -271,9 +401,17 @@ export function getCurrentLanguage(): Language {
 }
 
 /**
- * Get translation text
+ * Get translation text (React hook)
  */
 export function useTranslation() {
+  const lang = getCurrentLanguage()
+  return translations[lang]
+}
+
+/**
+ * Get translation text (non-React function for use in api.ts, store.ts, etc.)
+ */
+export function getTranslation() {
   const lang = getCurrentLanguage()
   return translations[lang]
 }
