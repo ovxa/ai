@@ -209,7 +209,6 @@ const MessageBubble = memo(function MessageBubble({
                       <animate id="spinner_OcgL_1" begin="spinner_qFRN_1.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
                     </circle>
                   </svg>
-                  <span>{t.generating}</span>
                 </div>
 
                 {/* Stop Generating 按钮 */}
@@ -245,7 +244,6 @@ const MessageBubble = memo(function MessageBubble({
                     <animate id="spinner_OcgL_2" begin="spinner_qFRN_2.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
                   </circle>
                 </svg>
-                <span>{t.generating}</span>
               </div>
             )}
 
@@ -274,6 +272,9 @@ const MessageBubble = memo(function MessageBubble({
         <FullscreenMarkdown
           content={message.content}
           onClose={() => onFullscreenToggle?.(false)}
+          agentId={message.agentId}
+          isStreaming={!!isStreaming}
+          onStopGeneration={stopGeneration}
         />
       )}
     </>
@@ -410,7 +411,6 @@ export default function MessageList() {
                       <animate id="spinner_OcgL_3" begin="spinner_qFRN_3.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
                     </circle>
                   </svg>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{t.generating}</span>
                 </div>
               </div>
             </div>
