@@ -20,12 +20,12 @@ export default function ChatInterface() {
   }, [])
 
   return (
-    <div className="max-w-7xl mx-auto h-[calc(100vh-2rem)]">
+    <div className="w-full lg:max-w-7xl lg:mx-auto h-screen lg:h-[calc(100vh-2rem)] px-2 sm:px-4 lg:px-0">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      <div className="py-2 sm:py-3 lg:mb-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-shrink">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 truncate">
               <a
                 href="https://group.ai.je"
                 target="_blank"
@@ -35,7 +35,7 @@ export default function ChatInterface() {
                 {t.aiTrioChat}
               </a>
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 truncate">
               <a
                 href="https://ai.je"
                 target="_blank"
@@ -48,7 +48,7 @@ export default function ChatInterface() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <LanguageSelector />
             <ThemeToggle />
             <ModelSettings />
@@ -69,20 +69,20 @@ export default function ChatInterface() {
 
         {/* Error banner */}
         {error && (
-          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mt-2 sm:mt-4 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
             <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
 
               <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <span>{error}</span>
+              <span className="text-sm sm:text-base">{error}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Main content area */}
-      <div className="flex flex-col h-[calc(100%-10rem)] lg:h-[calc(100%-8rem)]">
+      <div className="flex flex-col h-[calc(100%-5rem)] sm:h-[calc(100%-6rem)] lg:h-[calc(100%-8rem)]">
         {/* Chat area - Full height */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
           {/* Messages */}
@@ -91,7 +91,7 @@ export default function ChatInterface() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-2 sm:p-4 bg-gray-50 dark:bg-gray-900">
             <ChatInput />
           </div>
         </div>
