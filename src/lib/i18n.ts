@@ -36,6 +36,8 @@ export const translations = {
     startConversation: 'Gespräch starten',
     startConversationHint: 'Verwenden Sie @ um spezifische KI zu erwähnen, oder senden Sie direkt eine Nachricht',
     language: 'Sprache',
+    settings: 'Einstellungen',
+    theme: 'Thema',
   },
   en: {
     // English
@@ -54,6 +56,8 @@ export const translations = {
     startConversation: 'Start conversation',
     startConversationHint: 'Use @ to mention specific AI, or send message directly',
     language: 'Language',
+    settings: 'Settings',
+    theme: 'Theme',
   },
   es: {
     // Spanish
@@ -72,6 +76,8 @@ export const translations = {
     startConversation: 'Iniciar conversación',
     startConversationHint: 'Use @ para mencionar IA específica, o envíe mensaje directamente',
     language: 'Idioma',
+    settings: 'Configuración',
+    theme: 'Tema',
   },
   fr: {
     // French
@@ -90,6 +96,8 @@ export const translations = {
     startConversation: 'Démarrer la conversation',
     startConversationHint: 'Utilisez @ pour mentionner une IA spécifique, ou envoyez un message directement',
     language: 'Langue',
+    settings: 'Paramètres',
+    theme: 'Thème',
   },
   it: {
     // Italian
@@ -108,6 +116,8 @@ export const translations = {
     startConversation: 'Inizia conversazione',
     startConversationHint: 'Usa @ per menzionare IA specifica, o invia messaggio direttamente',
     language: 'Lingua',
+    settings: 'Impostazioni',
+    theme: 'Tema',
   },
   ja: {
     // Japanese
@@ -126,6 +136,8 @@ export const translations = {
     startConversation: '会話を開始',
     startConversationHint: '@を使用して特定のAIをメンション、または直接メッセージを送信',
     language: '言語',
+    settings: '設定',
+    theme: 'テーマ',
   },
   ko: {
     // Korean
@@ -144,6 +156,8 @@ export const translations = {
     startConversation: '대화 시작',
     startConversationHint: '@를 사용하여 특정 AI를 언급하거나 직접 메시지 보내기',
     language: '언어',
+    settings: '설정',
+    theme: '테마',
   },
   pt: {
     // Portuguese
@@ -162,6 +176,8 @@ export const translations = {
     startConversation: 'Iniciar conversa',
     startConversationHint: 'Use @ para mencionar IA específica, ou envie mensagem diretamente',
     language: 'Idioma',
+    settings: 'Configurações',
+    theme: 'Tema',
   },
   zh: {
     // Chinese
@@ -180,6 +196,8 @@ export const translations = {
     startConversation: '开始对话',
     startConversationHint: '使用 @ 提及特定 AI，或直接发送消息',
     language: '语言',
+    settings: '设置',
+    theme: '主题',
   },
   ru: {
     // Russian
@@ -198,6 +216,8 @@ export const translations = {
     startConversation: 'Начать разговор',
     startConversationHint: 'Используйте @ для упоминания конкретного ИИ, или отправьте сообщение напрямую',
     language: 'Язык',
+    settings: 'Настройки',
+    theme: 'Тема',
   },
 }
 
