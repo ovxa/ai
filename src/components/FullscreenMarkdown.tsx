@@ -41,30 +41,15 @@ export default function FullscreenMarkdown({
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Markdown 预览
           </h3>
-          <div className="flex items-center gap-2">
-            {/* Stop button - shown only during streaming */}
-            {isStreaming && agentId && onStopGeneration && (
-              <button
-                onClick={() => onStopGeneration(agentId)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded transition-colors"
-                title={t.stop}
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <rect x="6" y="6" width="12" height="12" />
-                </svg>
-                <span>{t.stop}</span>
-              </button>
-            )}
-            {/* Close button - always shown */}
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+          {/* Close button - always shown */}
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Content */}
@@ -74,7 +59,7 @@ export default function FullscreenMarkdown({
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          {/* Character count - left side */}
+          {/* Character count - left side (only during streaming) */}
           {isStreaming ? (
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {content.length} {t.responseCount}
@@ -83,13 +68,26 @@ export default function FullscreenMarkdown({
             <div></div>
           )}
 
-          {/* Close button - right side */}
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-          >
-            关闭
-          </button>
+          {/* Right side button - Stop button during streaming, Close button otherwise */}
+          {isStreaming && agentId && onStopGeneration ? (
+            <button
+              onClick={() => onStopGeneration(agentId)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              title={t.stop}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" />
+              </svg>
+              <span>{t.stop}</span>
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              关闭
+            </button>
+          )}
         </div>
       </div>
     </div>
