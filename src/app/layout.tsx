@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AI Trio Chat - 三 AI 协作助手',
-  description: '与三个专业 AI 助手协作：分析者、创意者、评估者',
+  title: 'Group - AI Team Chat',
+  description: 'Use @ to mention specific AI, or send message directly',
   other: {
     // Content Security Policy to prevent XSS attacks
     // Note: connect-src allows https: to support custom API endpoints
