@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useChatStore } from '@/lib/store'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
@@ -8,6 +8,7 @@ import { useTranslation } from '@/lib/i18n'
 export default function ChatInterface() {
   const { error, reset, initializeAPIKey } = useChatStore()
   const t = useTranslation()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // 初始化 API key（从 URL 或 localStorage）
   // 只在组件挂载时执行一次
@@ -29,7 +30,7 @@ export default function ChatInterface() {
           <div className="flex items-center justify-between gap-4">
             {/* Left: Settings icon */}
             <div className="flex-shrink-0">
-              <SettingsMenu />
+              <SettingsMenu onOpenChange={setIsSettingsOpen} />
             </div>
 
             {/* Center: Group + AI.JE */}
@@ -81,11 +82,13 @@ export default function ChatInterface() {
       </div>
 
       {/* Fixed input at bottom with gradient fade - positioned over messages */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-50 via-gray-50/95 to-transparent dark:from-gray-900 dark:via-gray-900/95 dark:to-transparent pt-8 sm:pt-12 pb-2 sm:pb-4 px-2 sm:px-4">
-        <div className="w-full lg:max-w-7xl lg:mx-auto">
-          <ChatInput />
+      {!isSettingsOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-50 via-gray-50/95 to-transparent dark:from-gray-900 dark:via-gray-900/95 dark:to-transparent pt-8 sm:pt-12 pb-2 sm:pb-4 px-2 sm:px-4">
+          <div className="w-full lg:max-w-7xl lg:mx-auto">
+            <ChatInput />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
