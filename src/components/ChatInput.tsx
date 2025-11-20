@@ -137,9 +137,6 @@ export default function ChatInput() {
 
     try {
       await sendMessage(trimmedInput)
-
-      // 重新聚焦输入框
-      textareaRef.current?.focus()
     } catch (error) {
       console.error('Failed to send message:', error)
     }
