@@ -167,7 +167,7 @@ export default function ChatInput() {
       )}
 
       {/* 输入框 */}
-      <div className="flex gap-2 items-end">
+      <div className="flex gap-2 items-center">
         <div className="flex-1 relative">
           <textarea
             ref={textareaRef}
@@ -176,7 +176,7 @@ export default function ChatInput() {
             onKeyDown={handleKeyDown}
             placeholder={t.inputPlaceholder}
             rows={1}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
+            className="w-full px-4 py-3 min-h-[48px] rounded-lg border border-gray-300 dark:border-gray-600
                      bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
                      focus:ring-2 focus:ring-blue-500 focus:border-transparent
                      resize-none overflow-hidden"
