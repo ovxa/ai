@@ -440,6 +440,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   reset: () => {
+    // Stop all ongoing generation first
+    get().stopAllGeneration()
+
+    // Clear conversation and reset state
     set({
       messages: [],
       agents: initializeAgents(),
@@ -447,7 +451,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       pendingAgents: [],
       isLoading: false,
       error: null,
-      aiMentionCount: 0
+      aiMentionCount: 0,
+      streamingMessages: new Map()
     })
   }
 }))
