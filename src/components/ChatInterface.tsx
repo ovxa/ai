@@ -26,10 +26,24 @@ export default function ChatInterface() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {t.aiTrioChat}
+              <a
+                href="https://group.ai.je"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {t.aiTrioChat}
+              </a>
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              {t.subtitle}
+              <a
+                href="https://ai.je"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {t.subtitle}
+              </a>
             </p>
           </div>
 
