@@ -20,7 +20,7 @@ export default function ChatInterface() {
   return (
     <div className="h-screen relative overflow-hidden">
       {/* Messages area - fullscreen, behind overlays */}
-      <div className="absolute inset-0 bg-white dark:bg-gray-800">
+      <div className="absolute inset-0 bg-white dark:bg-gray-800 pt-20 sm:pt-24 pb-24 sm:pb-28">
         <MessageList />
       </div>
 
