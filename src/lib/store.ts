@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { AgentId, AgentStatus, Message, AgentState } from '@/types'
-import { getAllAgentIds, getAgentById, initializeCustomModels } from './agents'
+import { getAllAgentIds, getAgentById, initializeCustomModels, getModelsFromURL, saveCustomModels } from './agents'
 import { parseMessage } from '@/utils/mention'
-import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint } from './api'
+import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint, getEndpointFromURL, saveCustomEndpoint, cleanURLParameters } from './api'
 
 interface ChatStore {
   // State
@@ -406,19 +406,37 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   initializeAPIKey: () => {
+    // Read and save API key from URL if present
     const key = getAvailableAPIKey()
     if (key) {
       set({ apiKey: key })
+      saveAPIKey(key) // Ensure saved to localStorage before URL cleanup
     }
 
-    // Initialize custom model configuration
+    // Read and save custom endpoint from URL if present
+    const urlEndpoint = getEndpointFromURL()
+    if (urlEndpoint) {
+      saveCustomEndpoint(urlEndpoint)
+      set({ customEndpoint: urlEndpoint })
+    }
+
+    // Read and save models from URL if present
+    const urlModels = getModelsFromURL()
+    if (urlModels && urlModels.length > 0) {
+      saveCustomModels(urlModels)
+    }
+
+    // Initialize custom model configuration (reads from localStorage or defaults)
     initializeCustomModels()
 
-    // Initialize custom endpoint
+    // Initialize custom endpoint from localStorage if not from URL
     const endpoint = getCustomEndpoint()
     if (endpoint) {
       set({ customEndpoint: endpoint })
     }
+
+    // Clean sensitive URL parameters after all data is saved
+    cleanURLParameters()
   },
 
   reset: () => {
