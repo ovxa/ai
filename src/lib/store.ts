@@ -3,6 +3,7 @@ import { AgentId, AgentStatus, Message, AgentState } from '@/types'
 import { getAllAgentIds, getAgentById, initializeCustomModels, getModelsFromURL, saveCustomModels } from './agents'
 import { parseMessage } from '@/utils/mention'
 import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint, getEndpointFromURL, saveCustomEndpoint, cleanURLParameters } from './api'
+import { getTranslation } from './i18n'
 
 interface ChatStore {
   // State
@@ -200,8 +201,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // Check API key
     if (!apiKey) {
+      const t = getTranslation()
       set({
-        error: 'Please set API Key first. You can add ?api=YOUR_KEY to the URL or configure it in settings.'
+        error: t.errors.apiKeyRequired
       })
       return
     }
@@ -341,12 +343,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         // Check if all requests failed
         const allFailed = responses.every(r => r.status === 'rejected')
         if (allFailed) {
-          set({ error: 'All AIs failed to respond, please check API Key and network connection' })
+          const t = getTranslation()
+          set({ error: t.errors.allAisFailed })
         }
       }
     } catch (error) {
       console.error('Send message error:', error)
-      set({ error: 'Failed to send message, please retry' })
+      const t = getTranslation()
+      set({ error: t.errors.sendMessageFailed })
     } finally {
       set({ isLoading: false, pendingAgents: [] })
     }
