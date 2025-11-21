@@ -37,6 +37,9 @@ jobs:
       - name: Add .nojekyll file
         run: touch out/.nojekyll
 
+      - name: Copy 404 page
+        run: cp out/404.html out/404.html 2>/dev/null || cp out/not-found.html out/404.html 2>/dev/null || echo "404 page will be generated"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
