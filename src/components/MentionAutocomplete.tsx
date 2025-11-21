@@ -65,7 +65,7 @@ export default function MentionAutocomplete({
       ref={listRef}
       className="fixed z-50 bg-card rounded-lg shadow-xl border border-border overflow-hidden"
       style={{
-        bottom: `calc(100vh - ${position.top}px + 10px)`, // 显示在输入框上方
+        bottom: `${window.innerHeight - position.top + 10}px`, // 显示在输入框上方（兼容iOS）
         left: Math.max(8, Math.min(position.left, window.innerWidth - 288)), // Keep within viewport with 8px margin
         minWidth: '280px',
         maxWidth: 'calc(100vw - 16px)' // Never exceed viewport width
