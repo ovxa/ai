@@ -60,12 +60,13 @@ export default function MentionAutocomplete({
   return (
     <div
       ref={listRef}
-      className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+      className="fixed z-50 bg-card rounded-lg shadow-xl border border-border overflow-hidden"
       style={{
         top: position.top,
-        left: position.left,
+        left: Math.max(8, Math.min(position.left, window.innerWidth - 288)), // Keep within viewport with 8px margin
         maxHeight: '200px',
-        minWidth: '280px'
+        minWidth: '280px',
+        maxWidth: 'calc(100vw - 16px)' // Never exceed viewport width
       }}
     >
       <div className="overflow-y-auto max-h-[200px]">
@@ -82,8 +83,8 @@ export default function MentionAutocomplete({
               className={`
                 px-4 py-2.5 cursor-pointer flex items-center gap-3 transition-colors
                 ${isSelected
-                  ? 'bg-blue-50 dark:bg-blue-900/30'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  ? 'bg-accent'
+                  : 'hover:bg-accent/50'
                 }
               `}
               onClick={() => onSelect(option)}
@@ -104,12 +105,12 @@ export default function MentionAutocomplete({
                     text-sm font-medium px-2 py-0.5 rounded
                     ${option.id === 'all'
                       ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                      : colorClass || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                      : colorClass || 'bg-secondary text-secondary-foreground'
                     }
                   `}>
                     {option.label.split(' ')[0]}
                   </span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                  <span className="text-sm text-muted-foreground truncate">
                     {option.label.split(' ').slice(1).join(' ')}
                   </span>
                 </div>
@@ -129,8 +130,8 @@ export default function MentionAutocomplete({
       </div>
 
       {/* 提示文本 */}
-      <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+      <div className="px-4 py-2 bg-muted border-t border-border">
+        <p className="text-xs text-muted-foreground">
           ↑↓ 导航 • Enter 选择 • Esc 关闭
         </p>
       </div>

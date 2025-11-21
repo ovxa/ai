@@ -110,7 +110,7 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
           />
 
           {/* Menu panel */}
-          <div className="absolute left-0 top-full mt-2 z-30 bg-card rounded-lg shadow-xl border border-border min-w-[320px] max-w-md py-2">
+          <div className="absolute left-0 top-full mt-2 z-30 bg-card rounded-lg shadow-xl border border-border min-w-[320px] max-w-[calc(100vw-2rem)] py-2" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
             <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border mb-1">
               {t.settings || 'Settings'}
             </div>

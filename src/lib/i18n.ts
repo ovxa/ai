@@ -50,6 +50,7 @@ export const translations = {
       noContent: 'Kein Inhalt in der Antwort',
       apiCallFailed: 'API-Aufruf fehlgeschlagen',
       fetchModelsFailed: 'Modelle konnten nicht abgerufen werden',
+      aiResponseError: 'Entschuldigung, ich kann momentan nicht antworten. Bitte versuchen Sie es später erneut.',
     },
   },
   en: {
@@ -83,6 +84,7 @@ export const translations = {
       noContent: 'No content in response',
       apiCallFailed: 'Failed to call API',
       fetchModelsFailed: 'Failed to fetch models',
+      aiResponseError: 'Sorry, I cannot respond right now. Please try again later.',
     },
   },
   es: {
@@ -116,6 +118,7 @@ export const translations = {
       noContent: 'Sin contenido en la respuesta',
       apiCallFailed: 'Fallo en la llamada a la API',
       fetchModelsFailed: 'No se pudieron obtener los modelos',
+      aiResponseError: 'Lo siento, no puedo responder en este momento. Por favor intente nuevamente más tarde.',
     },
   },
   fr: {
@@ -149,6 +152,7 @@ export const translations = {
       noContent: 'Aucun contenu dans la réponse',
       apiCallFailed: 'Échec de l\'appel API',
       fetchModelsFailed: 'Échec de la récupération des modèles',
+      aiResponseError: 'Désolé, je ne peux pas répondre pour le moment. Veuillez réessayer plus tard.',
     },
   },
   it: {
@@ -182,6 +186,7 @@ export const translations = {
       noContent: 'Nessun contenuto nella risposta',
       apiCallFailed: 'Chiamata API fallita',
       fetchModelsFailed: 'Impossibile recuperare i modelli',
+      aiResponseError: 'Mi dispiace, non posso rispondere in questo momento. Riprova più tardi.',
     },
   },
   ja: {
@@ -215,6 +220,7 @@ export const translations = {
       noContent: '応答にコンテンツがありません',
       apiCallFailed: 'API呼び出しに失敗しました',
       fetchModelsFailed: 'モデルの取得に失敗しました',
+      aiResponseError: '申し訳ございません、現在応答できません。後でもう一度お試しください。',
     },
   },
   ko: {
@@ -248,6 +254,7 @@ export const translations = {
       noContent: '응답에 내용이 없습니다',
       apiCallFailed: 'API 호출 실패',
       fetchModelsFailed: '모델을 가져오지 못했습니다',
+      aiResponseError: '죄송합니다. 지금은 응답할 수 없습니다. 나중에 다시 시도하세요.',
     },
   },
   pt: {
@@ -281,6 +288,7 @@ export const translations = {
       noContent: 'Sem conteúdo na resposta',
       apiCallFailed: 'Falha na chamada da API',
       fetchModelsFailed: 'Falha ao buscar modelos',
+      aiResponseError: 'Desculpe, não posso responder agora. Por favor, tente novamente mais tarde.',
     },
   },
   zh: {
@@ -314,6 +322,7 @@ export const translations = {
       noContent: '响应中没有内容',
       apiCallFailed: 'API 调用失败',
       fetchModelsFailed: '获取模型失败',
+      aiResponseError: '抱歉，我现在无法回答。请稍后再试。',
     },
   },
   ru: {
@@ -347,6 +356,7 @@ export const translations = {
       noContent: 'Нет содержимого в ответе',
       apiCallFailed: 'Не удалось вызвать API',
       fetchModelsFailed: 'Не удалось получить модели',
+      aiResponseError: 'Извините, я не могу ответить прямо сейчас. Пожалуйста, попробуйте позже.',
     },
   },
 }

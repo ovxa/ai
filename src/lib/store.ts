@@ -21,6 +21,7 @@ interface ChatStore {
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
+  deleteMessage: (messageId: string) => void
   updateStreamingMessage: (agentId: AgentId, content: string) => void
   finalizeStreamingMessage: (agentId: AgentId) => void
   finalizeAllStreamingMessages: () => void
@@ -72,6 +73,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
     set(state => ({
       messages: [...state.messages, newMessage]
+    }))
+  },
+
+  deleteMessage: (messageId) => {
+    set(state => ({
+      messages: state.messages.filter(msg => msg.id !== messageId)
     }))
   },
 
@@ -266,7 +273,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             setAgentStatus(agentId, 'online')
           } catch (error) {
             console.error(`Error from ${agentId}:`, error)
-            const errorMsg = error instanceof Error ? error.message : 'Sorry, I cannot respond right now. Please try again later.'
+            const t = getTranslation()
+            const errorMsg = error instanceof Error ? error.message : t.errors.aiResponseError
 
             updateStreamingMessage(agentId, errorMsg)
             finalizeStreamingMessage(agentId)
@@ -322,7 +330,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
               return { agentId, success: true }
             } catch (error) {
               console.error(`Error from ${agentId}:`, error)
-              const errorMsg = error instanceof Error ? error.message : 'Sorry, I cannot respond right now. Please try again later.'
+              const t = getTranslation()
+              const errorMsg = error instanceof Error ? error.message : t.errors.aiResponseError
 
               updateStreamingMessage(agentId, errorMsg)
               finalizeStreamingMessage(agentId)
