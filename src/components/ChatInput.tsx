@@ -175,7 +175,7 @@ export default function ChatInput() {
             rows={1}
             className="w-full px-4 py-3 min-h-[48px] rounded-lg border border-input
                      bg-background text-foreground
-                     focus:ring-2 focus:ring-ring focus:border-transparent
+                     focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring
                      resize-none overflow-hidden"
             style={{ maxHeight: '200px' }}
           />
