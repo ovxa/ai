@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { AutocompleteOption } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 interface MentionAutocompleteProps {
   options: AutocompleteOption[]
@@ -24,6 +25,7 @@ export default function MentionAutocomplete({
 }: MentionAutocompleteProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<HTMLDivElement>(null)
+  const t = useTranslation()
 
   // 滚动到选中的选项
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function MentionAutocomplete({
       {/* 提示文本 */}
       <div className="px-4 py-2 bg-muted border-t border-border">
         <p className="text-xs text-muted-foreground">
-          ↑↓ 导航 • Enter 选择 • Esc 关闭
+          {t.navigationHint}
         </p>
       </div>
     </div>

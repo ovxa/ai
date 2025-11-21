@@ -54,7 +54,7 @@ export default function APIKeySettings() {
       bg-black/50 backdrop-blur-sm
       ${showSettings ? '' : 'hidden'}
     `}>
-      <div className="bg-card rounded-lg shadow-2xl p-6 max-w-lg w-full mx-4">
+      <div className="bg-card rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
             {t.apiKeySettings.title}
