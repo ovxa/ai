@@ -42,7 +42,7 @@ export default function FullscreenMarkdown({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">
-            Markdown 预览
+            {t.markdownPreview}
           </h3>
           {/* Close button - always shown */}
           <button
@@ -88,7 +88,7 @@ export default function FullscreenMarkdown({
               onClick={onClose}
               className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition-colors"
             >
-              关闭
+              {t.close}
             </button>
           )}
         </div>
