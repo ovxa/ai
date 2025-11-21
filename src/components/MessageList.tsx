@@ -141,10 +141,10 @@ const MessageBubble = memo(function MessageBubble({
                 <MarkdownRenderer content={message.content} />
               </div>
             ) : isCollapsed ? (
-              // 折叠状态：显示摘要 + ...More
+              // 折叠状态：显示摘要 + More
               <div className="whitespace-pre-wrap opacity-80">
                 {summary}
-                <span className="ml-1 opacity-60">...{t.more}</span>
+                <span className="ml-1 opacity-60">{t.more}</span>
               </div>
             ) : (
               // 纯文本：高亮 @mentions
@@ -176,29 +176,6 @@ const MessageBubble = memo(function MessageBubble({
               </div>
             )}
 
-            {/* 生成中动画 - 显示在右下角 */}
-            {isStreaming && (
-              <div className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="4" cy="12" r="2" fill="currentColor">
-                    <animate id="spinner_qFRN_1" begin="0;spinner_OcgL_1.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                  </circle>
-                  <circle cx="12" cy="12" r="2" fill="currentColor">
-                    <animate begin="spinner_qFRN_1.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                  </circle>
-                  <circle cx="20" cy="12" r="2" fill="currentColor">
-                    <animate id="spinner_OcgL_1" begin="spinner_qFRN_1.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                  </circle>
-                </svg>
-              </div>
-            )}
-
-            {/* 字符计数 - 仅在流式输出时显示 */}
-            {isStreaming && (
-              <div className="absolute bottom-2 left-2 text-xs text-gray-400 dark:text-gray-500">
-                {message.content.length} {t.responseCount}
-              </div>
-            )}
           </div>
 
           {/* 时间戳和操作按钮 */}
@@ -212,6 +189,13 @@ const MessageBubble = memo(function MessageBubble({
                 minute: '2-digit'
               })}
             </div>
+
+            {/* 字符计数 - 仅在流式输出时显示 */}
+            {!isUser && isStreaming && (
+              <div className="text-xs text-gray-400 dark:text-gray-500">
+                {message.content.length} {t.responseCount}
+              </div>
+            )}
 
             {/* 操作按钮 */}
             {!isUser && (
