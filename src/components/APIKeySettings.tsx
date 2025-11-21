@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useChatStore } from '@/lib/store'
 import { getAPIKeysFromURL, getAllAPIKeys } from '@/lib/api'
+import { useTranslation } from '@/lib/i18n'
 
 export default function APIKeySettings() {
   const [showSettings, setShowSettings] = useState(false)
   const [inputKey, setInputKey] = useState('')
   const { apiKey, setAPIKey } = useChatStore()
+  const t = useTranslation()
 
   const urlKeys = getAPIKeysFromURL()
   const hasURLKey = urlKeys.length > 0
@@ -55,7 +57,7 @@ export default function APIKeySettings() {
       <div className="bg-card rounded-lg shadow-2xl p-6 max-w-lg w-full mx-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
-            API Key Settings
+            {t.apiKeySettings.title}
           </h2>
           {apiKey && (
             <button
@@ -78,10 +80,10 @@ export default function APIKeySettings() {
               </svg>
               <div className="flex-1">
                 <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                  API Key from URL detected
+                  {t.apiKeySettings.apiKeyFromURL}
                 </p>
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  {urlKeys.length} key{urlKeys.length > 1 ? 's' : ''} found in URL parameters
+                  {urlKeys.length} {t.apiKeySettings.keysFoundInURL}
                 </p>
               </div>
             </div>
@@ -92,7 +94,7 @@ export default function APIKeySettings() {
         {apiKey && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-foreground mb-2">
-              Current API Key
+              {t.apiKeySettings.currentApiKey}
             </label>
             <div className="flex items-center gap-2">
               <code className="flex-1 px-3 py-2 bg-muted rounded font-mono text-sm overflow-hidden overflow-ellipsis">
@@ -101,7 +103,7 @@ export default function APIKeySettings() {
               <button
                 onClick={handleClear}
                 className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-                title="Clear API Key"
+                title={t.apiKeySettings.clearApiKey}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -114,7 +116,7 @@ export default function APIKeySettings() {
         {/* Input New Key */}
         <div className="mb-4">
           <label htmlFor="api-key-input" className="block text-sm font-medium text-foreground mb-2">
-            {apiKey ? 'Update API Key' : 'Enter OpenRouter API Key'}
+            {apiKey ? t.apiKeySettings.updateApiKey : t.apiKeySettings.enterApiKey}
           </label>
           <input
             id="api-key-input"
@@ -132,7 +134,7 @@ export default function APIKeySettings() {
             }}
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Get your API key from{' '}
+            {t.apiKeySettings.getApiKeyFrom}{' '}
             <a
               href="https://openrouter.ai/keys"
               target="_blank"
@@ -147,16 +149,16 @@ export default function APIKeySettings() {
         {/* Instructions */}
         <div className="mb-4 p-3 bg-muted rounded-lg">
           <p className="text-sm font-medium text-foreground mb-2">
-            Alternative: Use URL Parameter
+            {t.apiKeySettings.alternativeUrlParam}
           </p>
           <p className="text-xs text-muted-foreground mb-2">
-            You can also pass the API key via URL:
+            {t.apiKeySettings.passApiKeyViaUrl}
           </p>
           <code className="block text-xs bg-background px-2 py-1 rounded font-mono overflow-x-auto">
             {typeof window !== 'undefined' ? window.location.origin : ''}?api=YOUR_API_KEY
           </code>
           <p className="text-xs text-muted-foreground mt-2">
-            Multiple keys: ?api=key1&api=key2
+            {t.apiKeySettings.multipleKeys} ?api=key1&api=key2
           </p>
         </div>
 
@@ -169,14 +171,14 @@ export default function APIKeySettings() {
                      text-white font-medium rounded-lg transition-colors
                      disabled:cursor-not-allowed"
           >
-            {apiKey ? 'Update Key' : 'Save Key'}
+            {apiKey ? t.apiKeySettings.updateKey : t.apiKeySettings.saveKey}
           </button>
           {apiKey && (
             <button
               onClick={() => setShowSettings(false)}
               className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium rounded-lg transition-colors"
             >
-              Cancel
+              {t.save}
             </button>
           )}
         </div>

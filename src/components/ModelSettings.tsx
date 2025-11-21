@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { getAgents, getCustomModels, saveCustomModels, resetModelsToDefault, addModel, removeModel, updateModel } from '@/lib/agents'
 import { saveCustomEndpoint, clearCustomEndpoint, getCustomEndpoint, getEndpointFromURL, fetchAvailableModels, extractModelShortName } from '@/lib/api'
 import { useChatStore } from '@/lib/store'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ModelSettings() {
   const [showSettings, setShowSettings] = useState(false)
   const { apiKey, setCustomEndpoint } = useChatStore()
+  const t = useTranslation()
 
   const [models, setModels] = useState<string[]>([])
   const [endpoint, setEndpoint] = useState('')
@@ -25,7 +27,7 @@ export default function ModelSettings() {
   // 从 API 获取可用模型
   const handleFetchModels = async () => {
     if (!apiKey) {
-      alert('请先设置 API Key')
+      alert(t.modelSettings.setApiKeyFirst)
       return
     }
 
@@ -35,7 +37,7 @@ export default function ModelSettings() {
       setAvailableModels(fetchedModels)
     } catch (error) {
       console.error('Failed to fetch models:', error)
-      alert('获取模型列表失败，请检查 API Key 和 Endpoint')
+      alert(t.modelSettings.fetchModelError)
     } finally {
       setLoadingModels(false)
     }
@@ -53,7 +55,7 @@ export default function ModelSettings() {
   }
 
   const handleAddModel = () => {
-    const newModel = prompt('输入模型名称（例如：anthropic/claude-sonnet-4.5）')
+    const newModel = prompt(t.modelSettings.enterModelName)
     if (newModel && newModel.trim()) {
       const newModels = [...models, newModel.trim()]
       setModels(newModels)
@@ -63,7 +65,7 @@ export default function ModelSettings() {
 
   const handleRemoveModel = (index: number) => {
     if (models.length <= 1) {
-      alert('至少需要保留一个模型')
+      alert(t.modelSettings.atLeastOneModel)
       return
     }
     const newModels = models.filter((_, i) => i !== index)
@@ -120,7 +122,7 @@ export default function ModelSettings() {
       <div className="bg-card rounded-lg shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
-            Model & API Settings
+            {t.modelSettings.title}
           </h2>
           <button
             onClick={() => setShowSettings(false)}
@@ -139,7 +141,7 @@ export default function ModelSettings() {
           </label>
           {urlEndpoint && (
             <div className="mb-2 p-2 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-xs">
-              <span className="text-green-800 dark:text-green-300">从 URL 获取: </span>
+              <span className="text-green-800 dark:text-green-300">{t.modelSettings.fromURL} </span>
               <span className="font-mono text-green-900 dark:text-green-200">{urlEndpoint}</span>
             </div>
           )}
@@ -153,7 +155,7 @@ export default function ModelSettings() {
                      focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            留空使用 OpenRouter。可使用 URL 参数：?endpoint=YOUR_ENDPOINT
+            {t.modelSettings.endpointHint}
           </p>
         </div>
 
@@ -171,21 +173,21 @@ export default function ModelSettings() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                加载中...
+                {t.modelSettings.loading}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                从 API 获取可用模型
+                {t.modelSettings.fetchModels}
               </>
             )}
           </button>
 
           {availableModels.length > 0 && (
             <div className="mt-2 p-2 bg-muted rounded text-xs max-h-32 overflow-y-auto">
-              <div className="text-muted-foreground mb-1">找到 {availableModels.length} 个模型</div>
+              <div className="text-muted-foreground mb-1">{availableModels.length} {t.modelSettings.foundModels}</div>
             </div>
           )}
         </div>
@@ -200,7 +202,7 @@ export default function ModelSettings() {
               onClick={handleAddModel}
               className="px-3 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
             >
-              + 添加模型
+              {t.modelSettings.addModel}
             </button>
           </div>
 
@@ -224,7 +226,7 @@ export default function ModelSettings() {
                       <button
                         onClick={() => handleRemoveModel(index)}
                         className="text-red-500 hover:text-red-700 p-1"
-                        title="删除"
+                        title={t.modelSettings.delete}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -249,7 +251,7 @@ export default function ModelSettings() {
                         className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1
                                  text-xs bg-blue-500 hover:bg-blue-600 text-white rounded"
                       >
-                        选择
+                        {t.modelSettings.select}
                       </button>
                     )}
                   </div>
@@ -263,7 +265,7 @@ export default function ModelSettings() {
                           type="text"
                           value={modelSearchQuery}
                           onChange={(e) => setModelSearchQuery(e.target.value)}
-                          placeholder="搜索模型..."
+                          placeholder={t.modelSettings.searchModels}
                           className="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded
                                    bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
                                    focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -287,7 +289,7 @@ export default function ModelSettings() {
                           ))
                         ) : (
                           <div className="px-3 py-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                            未找到匹配的模型
+                            {t.modelSettings.noModelsFound}
                           </div>
                         )}
                       </div>
@@ -305,13 +307,13 @@ export default function ModelSettings() {
             onClick={handleReset}
             className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
           >
-            重置为默认
+            {t.modelSettings.resetToDefault}
           </button>
           <button
             onClick={() => setShowSettings(false)}
             className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
           >
-            关闭
+            {t.save}
           </button>
         </div>
       </div>
