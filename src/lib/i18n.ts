@@ -43,7 +43,7 @@ export const translations = {
     close: 'Schließen',
     markdownPreview: 'Markdown-Vorschau',
     confirmDelete: 'Sind Sie sicher, dass Sie diese Nachricht löschen möchten?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Navigieren • Enter • Esc',
     modelSettings: {
       title: 'Modell- & API-Einstellungen',
       fetchModels: 'Verfügbare Modelle von API abrufen',
@@ -117,7 +117,7 @@ export const translations = {
     close: 'Close',
     markdownPreview: 'Markdown Preview',
     confirmDelete: 'Are you sure you want to delete this message?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Navigate • Enter • Esc',
     modelSettings: {
       title: 'Model & API Settings',
       fetchModels: 'Fetch available models from API',
@@ -191,7 +191,7 @@ export const translations = {
     close: 'Cerrar',
     markdownPreview: 'Vista previa de Markdown',
     confirmDelete: '¿Está seguro de que desea eliminar este mensaje?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Navegar • Enter • Esc',
     modelSettings: {
       title: 'Configuración de Modelos y API',
       fetchModels: 'Obtener modelos disponibles de la API',
@@ -265,7 +265,7 @@ export const translations = {
     close: 'Fermer',
     markdownPreview: 'Aperçu Markdown',
     confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce message ?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Naviguer • Enter • Esc',
     modelSettings: {
       title: 'Paramètres de Modèle & API',
       fetchModels: 'Récupérer les modèles disponibles depuis l\'API',
@@ -339,7 +339,7 @@ export const translations = {
     close: 'Chiudi',
     markdownPreview: 'Anteprima Markdown',
     confirmDelete: 'Sei sicuro di voler eliminare questo messaggio?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Naviga • Enter • Esc',
     modelSettings: {
       title: 'Impostazioni Modello & API',
       fetchModels: 'Recupera modelli disponibili dall\'API',
@@ -413,7 +413,7 @@ export const translations = {
     close: '閉じる',
     markdownPreview: 'Markdownプレビュー',
     confirmDelete: 'このメッセージを削除してもよろしいですか？',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ 移動 • Enter • Esc',
     modelSettings: {
       title: 'モデル & API 設定',
       fetchModels: 'APIから利用可能なモデルを取得',
@@ -487,7 +487,7 @@ export const translations = {
     close: '닫기',
     markdownPreview: 'Markdown 미리보기',
     confirmDelete: '이 메시지를 삭제하시겠습니까?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ 이동 • Enter • Esc',
     modelSettings: {
       title: '모델 & API 설정',
       fetchModels: 'API에서 사용 가능한 모델 가져오기',
@@ -561,7 +561,7 @@ export const translations = {
     close: 'Fechar',
     markdownPreview: 'Visualização Markdown',
     confirmDelete: 'Tem certeza de que deseja excluir esta mensagem?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Navegar • Enter • Esc',
     modelSettings: {
       title: 'Configurações de Modelo & API',
       fetchModels: 'Buscar modelos disponíveis da API',
@@ -635,7 +635,7 @@ export const translations = {
     close: '关闭',
     markdownPreview: 'Markdown 预览',
     confirmDelete: '确定要删除这条消息吗？',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ 导航 • Enter • Esc',
     modelSettings: {
       title: '模型 & API 设置',
       fetchModels: '从 API 获取可用模型',
@@ -709,7 +709,7 @@ export const translations = {
     close: 'Закрыть',
     markdownPreview: 'Предпросмотр Markdown',
     confirmDelete: 'Вы уверены, что хотите удалить это сообщение?',
-    navigationHint: '↑↓ • Enter • Esc',
+    navigationHint: '↑↓ Навигация • Enter • Esc',
     modelSettings: {
       title: 'Настройки Модели и API',
       fetchModels: 'Получить доступные модели из API',
