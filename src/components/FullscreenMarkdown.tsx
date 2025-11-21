@@ -36,7 +36,7 @@ export default function FullscreenMarkdown({
       onClick={onClose}
     >
       <div
-        className="bg-card rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-card rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

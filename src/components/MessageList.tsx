@@ -198,65 +198,63 @@ const MessageBubble = memo(function MessageBubble({
             )}
 
             {/* 操作按钮 */}
-            {!isUser && (
-              <div className="flex items-center gap-1">
-                {/* 停止按钮 - 仅在流式输出时显示 */}
-                {isStreaming && message.agentId && (
+            <div className="flex items-center gap-1">
+              {/* 停止按钮 - 仅在AI流式输出时显示 */}
+              {!isUser && isStreaming && message.agentId && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    stopGeneration(message.agentId!)
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                  title={t.stop}
+                >
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                  <span>{t.stop}</span>
+                </button>
+              )}
+
+              {/* 复制和删除按钮 - AI消息在非流式时显示，用户消息始终显示 */}
+              {(isUser || (!isStreaming && message.id !== 'streaming')) && (
+                <>
+                  {/* 复制按钮 */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      stopGeneration(message.agentId!)
+                      navigator.clipboard.writeText(message.content).then(() => {
+                        // 可以添加复制成功的提示
+                      }).catch(err => {
+                        console.error('Failed to copy:', err)
+                      })
                     }}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
-                    title={t.stop}
+                    className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                    title="Copy"
                   >
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <rect x="6" y="6" width="12" height="12" />
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    <span>{t.stop}</span>
                   </button>
-                )}
 
-                {/* 复制和删除按钮 - 仅在非流式输出时显示 */}
-                {!isStreaming && message.id !== 'streaming' && (
-                  <>
-                    {/* 复制按钮 */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigator.clipboard.writeText(message.content).then(() => {
-                          // 可以添加复制成功的提示
-                        }).catch(err => {
-                          console.error('Failed to copy:', err)
-                        })
-                      }}
-                      className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                      title="Copy"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-
-                    {/* 删除按钮 */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (confirm(t.confirmDelete)) {
-                          deleteMessage(message.id)
-                        }
-                      }}
-                      className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                      title="Delete"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+                  {/* 删除按钮 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (confirm(t.confirmDelete)) {
+                        deleteMessage(message.id)
+                      }
+                    }}
+                    className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    title="Delete"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -376,7 +374,10 @@ export default function MessageList() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-6" onScroll={handleScroll}>
+    <div
+      className={`h-full overflow-y-auto px-4 py-6 ${streamingMessages.size > 0 ? 'hide-scrollbar' : ''}`}
+      onScroll={handleScroll}
+    >
       {messages.map(message => {
         const stableKey = getStableKey(message)
         return (
