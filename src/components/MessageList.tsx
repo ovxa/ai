@@ -106,7 +106,7 @@ const MessageBubble = memo(function MessageBubble({
           {/* 消息气泡 */}
           <div
             className={`
-              rounded-lg px-4 py-3 pb-8 break-words transition-all relative
+              rounded-lg px-4 py-3 break-words transition-all relative
               ${shouldCollapse ? 'cursor-pointer hover:shadow-lg' : ''}
               ${isUser
                 ? 'bg-blue-500 text-white'
