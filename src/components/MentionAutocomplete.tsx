@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { AutocompleteOption } from '@/types'
+import { useTranslation } from '@/lib/i18n'
 
 interface MentionAutocompleteProps {
   options: AutocompleteOption[]
@@ -24,6 +25,7 @@ export default function MentionAutocomplete({
 }: MentionAutocompleteProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<HTMLDivElement>(null)
+  const t = useTranslation()
 
   // 滚动到选中的选项
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function MentionAutocomplete({
       ref={listRef}
       className="fixed z-50 bg-card rounded-lg shadow-xl border border-border overflow-hidden"
       style={{
-        bottom: `calc(100vh - ${position.top}px + 10px)`, // 显示在输入框上方
+        bottom: `${window.innerHeight - position.top + 10}px`, // 显示在输入框上方（兼容iOS）
         left: Math.max(8, Math.min(position.left, window.innerWidth - 288)), // Keep within viewport with 8px margin
         minWidth: '280px',
         maxWidth: 'calc(100vw - 16px)' // Never exceed viewport width
@@ -134,7 +136,7 @@ export default function MentionAutocomplete({
       {/* 提示文本 */}
       <div className="px-4 py-2 bg-muted border-t border-border">
         <p className="text-xs text-muted-foreground">
-          ↑↓ 导航 • Enter 选择 • Esc 关闭
+          {t.navigationHint}
         </p>
       </div>
     </div>
