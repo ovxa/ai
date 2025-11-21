@@ -374,7 +374,10 @@ export default function MessageList() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-6" onScroll={handleScroll}>
+    <div
+      className={`h-full overflow-y-auto px-4 py-6 ${streamingMessages.size > 0 ? 'hide-scrollbar' : ''}`}
+      onScroll={handleScroll}
+    >
       {messages.map(message => {
         const stableKey = getStableKey(message)
         return (
