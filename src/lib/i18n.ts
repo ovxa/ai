@@ -40,6 +40,9 @@ export const translations = {
     theme: 'Thema',
     more: 'Mehr',
     save: 'Speichern',
+    close: 'Schließen',
+    markdownPreview: 'Markdown-Vorschau',
+    confirmDelete: 'Sind Sie sicher, dass Sie diese Nachricht löschen möchten?',
     modelSettings: {
       title: 'Modell- & API-Einstellungen',
       fetchModels: 'Verfügbare Modelle von API abrufen',
@@ -110,6 +113,9 @@ export const translations = {
     theme: 'Theme',
     more: 'More',
     save: 'Save',
+    close: 'Close',
+    markdownPreview: 'Markdown Preview',
+    confirmDelete: 'Are you sure you want to delete this message?',
     modelSettings: {
       title: 'Model & API Settings',
       fetchModels: 'Fetch available models from API',
@@ -180,6 +186,9 @@ export const translations = {
     theme: 'Tema',
     more: 'Más',
     save: 'Guardar',
+    close: 'Cerrar',
+    markdownPreview: 'Vista previa de Markdown',
+    confirmDelete: '¿Está seguro de que desea eliminar este mensaje?',
     modelSettings: {
       title: 'Configuración de Modelos y API',
       fetchModels: 'Obtener modelos disponibles de la API',
@@ -250,6 +259,9 @@ export const translations = {
     theme: 'Thème',
     more: 'Plus',
     save: 'Enregistrer',
+    close: 'Fermer',
+    markdownPreview: 'Aperçu Markdown',
+    confirmDelete: 'Êtes-vous sûr de vouloir supprimer ce message ?',
     modelSettings: {
       title: 'Paramètres de Modèle & API',
       fetchModels: 'Récupérer les modèles disponibles depuis l\'API',
@@ -320,6 +332,9 @@ export const translations = {
     theme: 'Tema',
     more: 'Altro',
     save: 'Salva',
+    close: 'Chiudi',
+    markdownPreview: 'Anteprima Markdown',
+    confirmDelete: 'Sei sicuro di voler eliminare questo messaggio?',
     modelSettings: {
       title: 'Impostazioni Modello & API',
       fetchModels: 'Recupera modelli disponibili dall\'API',
@@ -390,6 +405,9 @@ export const translations = {
     theme: 'テーマ',
     more: 'もっと見る',
     save: '保存',
+    close: '閉じる',
+    markdownPreview: 'Markdownプレビュー',
+    confirmDelete: 'このメッセージを削除してもよろしいですか？',
     modelSettings: {
       title: 'モデル & API 設定',
       fetchModels: 'APIから利用可能なモデルを取得',
@@ -460,6 +478,9 @@ export const translations = {
     theme: '테마',
     more: '더 보기',
     save: '저장',
+    close: '닫기',
+    markdownPreview: 'Markdown 미리보기',
+    confirmDelete: '이 메시지를 삭제하시겠습니까?',
     modelSettings: {
       title: '모델 & API 설정',
       fetchModels: 'API에서 사용 가능한 모델 가져오기',
@@ -530,6 +551,9 @@ export const translations = {
     theme: 'Tema',
     more: 'Mais',
     save: 'Salvar',
+    close: 'Fechar',
+    markdownPreview: 'Visualização Markdown',
+    confirmDelete: 'Tem certeza de que deseja excluir esta mensagem?',
     modelSettings: {
       title: 'Configurações de Modelo & API',
       fetchModels: 'Buscar modelos disponíveis da API',
@@ -600,6 +624,9 @@ export const translations = {
     theme: '主题',
     more: '更多',
     save: '保存',
+    close: '关闭',
+    markdownPreview: 'Markdown 预览',
+    confirmDelete: '确定要删除这条消息吗？',
     modelSettings: {
       title: '模型 & API 设置',
       fetchModels: '从 API 获取可用模型',
@@ -670,6 +697,9 @@ export const translations = {
     theme: 'Тема',
     more: 'Ещё',
     save: 'Сохранить',
+    close: 'Закрыть',
+    markdownPreview: 'Предпросмотр Markdown',
+    confirmDelete: 'Вы уверены, что хотите удалить это сообщение?',
     modelSettings: {
       title: 'Настройки Модели и API',
       fetchModels: 'Получить доступные модели из API',

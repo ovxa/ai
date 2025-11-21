@@ -242,7 +242,7 @@ const MessageBubble = memo(function MessageBubble({
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (confirm('确定要删除这条消息吗？')) {
+                        if (confirm(t.confirmDelete)) {
                           deleteMessage(message.id)
                         }
                       }}
@@ -388,9 +388,10 @@ export default function MessageList() {
               {/* 占位符消息气泡 */}
               <div
                 className={`
-                  rounded-lg px-4 py-3 pb-8 break-words relative
+                  rounded-lg px-4 py-3 break-words relative
                   ${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100
                 `}
+                style={{ paddingBottom: '0.75rem' }}
               >
                 {/* 生成动画 */}
                 <div className="flex items-center gap-2">
