@@ -63,9 +63,6 @@ const MessageBubble = memo(function MessageBubble({
   // 判断当前消息是否正在流式输出
   const isStreaming = message.id === 'streaming' && message.agentId && streamingMessages.has(message.agentId)
 
-  // 判断是否在等待此AI的回复（仅当该AI在pendingAgents列表中）
-  const isWaitingForResponse = !isUser && message.agentId && pendingAgents.includes(message.agentId) && !isStreaming && message.id !== 'streaming'
-
   // 检测是否包含 Markdown
   const hasMarkdown = hasMarkdownSyntax(message.content)
 
@@ -137,22 +134,6 @@ const MessageBubble = memo(function MessageBubble({
               </div>
             )}
 
-            {/* 折叠状态标识 */}
-            {shouldCollapse && (
-              <div className="flex items-center gap-2 mb-2 text-xs opacity-70">
-                {hasMarkdown && (
-                  <span className="px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded">
-                    Markdown
-                  </span>
-                )}
-                {isCollapsed && (
-                  <span className="px-2 py-0.5 bg-white/20 dark:bg-black/20 rounded">
-                    点击{hasMarkdown ? '全屏查看' : '展开'}
-                  </span>
-                )}
-              </div>
-            )}
-
             {/* 消息内容 */}
             {hasMarkdown && !isCollapsed ? (
               // Markdown 渲染
@@ -160,9 +141,10 @@ const MessageBubble = memo(function MessageBubble({
                 <MarkdownRenderer content={message.content} />
               </div>
             ) : isCollapsed ? (
-              // 折叠状态：显示摘要
+              // 折叠状态：显示摘要 + ...More
               <div className="whitespace-pre-wrap opacity-80">
                 {summary}
+                <span className="ml-1 opacity-60">...{t.more}</span>
               </div>
             ) : (
               // 纯文本：高亮 @mentions
@@ -194,55 +176,18 @@ const MessageBubble = memo(function MessageBubble({
               </div>
             )}
 
-            {/* 生成中动画和停止按钮 - 显示在右下角 */}
+            {/* 生成中动画 - 显示在右下角 */}
             {isStreaming && (
-              <div className="absolute bottom-2 right-2 flex items-center gap-2">
-                {/* Generating SVG 动画 */}
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="4" cy="12" r="2" fill="currentColor">
-                      <animate id="spinner_qFRN_1" begin="0;spinner_OcgL_1.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                    </circle>
-                    <circle cx="12" cy="12" r="2" fill="currentColor">
-                      <animate begin="spinner_qFRN_1.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                    </circle>
-                    <circle cx="20" cy="12" r="2" fill="currentColor">
-                      <animate id="spinner_OcgL_1" begin="spinner_qFRN_1.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                    </circle>
-                  </svg>
-                </div>
-
-                {/* Stop Generating 按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (message.agentId) {
-                      stopGeneration(message.agentId)
-                    }
-                  }}
-                  className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
-                  title={t.stop}
-                >
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="6" y="6" width="12" height="12" />
-                  </svg>
-                  <span>{t.stop}</span>
-                </button>
-              </div>
-            )}
-
-            {/* 等待生成动画 - 在收到用户消息后显示 */}
-            {isWaitingForResponse && (
-              <div className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+              <div className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="4" cy="12" r="2" fill="currentColor">
-                    <animate id="spinner_qFRN_2" begin="0;spinner_OcgL_2.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    <animate id="spinner_qFRN_1" begin="0;spinner_OcgL_1.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
                   </circle>
                   <circle cx="12" cy="12" r="2" fill="currentColor">
-                    <animate begin="spinner_qFRN_2.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    <animate begin="spinner_qFRN_1.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
                   </circle>
                   <circle cx="20" cy="12" r="2" fill="currentColor">
-                    <animate id="spinner_OcgL_2" begin="spinner_qFRN_2.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                    <animate id="spinner_OcgL_1" begin="spinner_qFRN_1.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
                   </circle>
                 </svg>
               </div>
@@ -254,55 +199,80 @@ const MessageBubble = memo(function MessageBubble({
                 {message.content.length} {t.responseCount}
               </div>
             )}
-
-            {/* 复制和删除按钮 - 左下角，仅在非流式输出和非等待状态时显示 */}
-            {!isStreaming && !isWaitingForResponse && message.id !== 'streaming' && (
-              <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                {/* 复制按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigator.clipboard.writeText(message.content).then(() => {
-                      // 可以添加复制成功的提示
-                    }).catch(err => {
-                      console.error('Failed to copy:', err)
-                    })
-                  }}
-                  className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                  title="Copy"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </button>
-
-                {/* 删除按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (confirm('确定要删除这条消息吗？')) {
-                      deleteMessage(message.id)
-                    }
-                  }}
-                  className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                  title="Delete"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* 时间戳 */}
-          <div className={`text-xs text-gray-500 dark:text-gray-500 mt-1 px-1 ${
-            isUser ? 'text-right' : 'text-left'
+          {/* 时间戳和操作按钮 */}
+          <div className={`flex items-center gap-2 mt-1 px-1 ${
+            isUser ? 'justify-end' : 'justify-start'
           }`}>
-            {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+            {/* 时间戳 */}
+            <div className="text-xs text-gray-500 dark:text-gray-500">
+              {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+
+            {/* 操作按钮 */}
+            {!isUser && (
+              <div className="flex items-center gap-1">
+                {/* 停止按钮 - 仅在流式输出时显示 */}
+                {isStreaming && message.agentId && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      stopGeneration(message.agentId!)
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                    title={t.stop}
+                  >
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="6" y="6" width="12" height="12" />
+                    </svg>
+                    <span>{t.stop}</span>
+                  </button>
+                )}
+
+                {/* 复制和删除按钮 - 仅在非流式输出时显示 */}
+                {!isStreaming && message.id !== 'streaming' && (
+                  <>
+                    {/* 复制按钮 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigator.clipboard.writeText(message.content).then(() => {
+                          // 可以添加复制成功的提示
+                        }).catch(err => {
+                          console.error('Failed to copy:', err)
+                        })
+                      }}
+                      className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                      title="Copy"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+
+                    {/* 删除按钮 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm('确定要删除这条消息吗？')) {
+                          deleteMessage(message.id)
+                        }
+                      }}
+                      className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      title="Delete"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

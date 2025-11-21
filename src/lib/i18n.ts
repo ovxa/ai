@@ -38,6 +38,7 @@ export const translations = {
     language: 'Sprache',
     settings: 'Einstellungen',
     theme: 'Thema',
+    more: 'Mehr',
     errors: {
       allAisFailed: 'Alle KIs konnten nicht antworten, bitte überprüfen Sie API-Schlüssel und Netzwerkverbindung',
       apiKeyRequired: 'Bitte setzen Sie zuerst den API-Schlüssel. Sie können ?api=IHR_SCHLÜSSEL zur URL hinzufügen oder ihn in den Einstellungen konfigurieren.',
@@ -72,6 +73,7 @@ export const translations = {
     language: 'Language',
     settings: 'Settings',
     theme: 'Theme',
+    more: 'More',
     errors: {
       allAisFailed: 'All AIs failed to respond, please check API Key and network connection',
       apiKeyRequired: 'Please set API Key first. You can add ?api=YOUR_KEY to the URL or configure it in settings.',
@@ -106,6 +108,7 @@ export const translations = {
     language: 'Idioma',
     settings: 'Configuración',
     theme: 'Tema',
+    more: 'Más',
     errors: {
       allAisFailed: 'Todas las IAs no pudieron responder, por favor verifique la clave API y la conexión de red',
       apiKeyRequired: 'Por favor configure primero la clave API. Puede agregar ?api=SU_CLAVE a la URL o configurarla en ajustes.',
@@ -140,6 +143,7 @@ export const translations = {
     language: 'Langue',
     settings: 'Paramètres',
     theme: 'Thème',
+    more: 'Plus',
     errors: {
       allAisFailed: 'Toutes les IAs n\'ont pas pu répondre, veuillez vérifier la clé API et la connexion réseau',
       apiKeyRequired: 'Veuillez d\'abord définir la clé API. Vous pouvez ajouter ?api=VOTRE_CLE à l\'URL ou la configurer dans les paramètres.',
@@ -174,6 +178,7 @@ export const translations = {
     language: 'Lingua',
     settings: 'Impostazioni',
     theme: 'Tema',
+    more: 'Altro',
     errors: {
       allAisFailed: 'Tutte le IA non hanno potuto rispondere, controlla la chiave API e la connessione di rete',
       apiKeyRequired: 'Imposta prima la chiave API. Puoi aggiungere ?api=TUA_CHIAVE all\'URL o configurarla nelle impostazioni.',
@@ -208,6 +213,7 @@ export const translations = {
     language: '言語',
     settings: '設定',
     theme: 'テーマ',
+    more: 'もっと見る',
     errors: {
       allAisFailed: 'すべてのAIが応答できませんでした。APIキーとネットワーク接続を確認してください',
       apiKeyRequired: '最初にAPIキーを設定してください。URLに ?api=YOUR_KEY を追加するか、設定で構成できます。',
@@ -242,6 +248,7 @@ export const translations = {
     language: '언어',
     settings: '설정',
     theme: '테마',
+    more: '더 보기',
     errors: {
       allAisFailed: '모든 AI가 응답하지 못했습니다. API 키와 네트워크 연결을 확인하세요',
       apiKeyRequired: '먼저 API 키를 설정하세요. URL에 ?api=YOUR_KEY를 추가하거나 설정에서 구성할 수 있습니다.',
@@ -276,6 +283,7 @@ export const translations = {
     language: 'Idioma',
     settings: 'Configurações',
     theme: 'Tema',
+    more: 'Mais',
     errors: {
       allAisFailed: 'Todas as IAs falharam ao responder, verifique a chave API e a conexão de rede',
       apiKeyRequired: 'Configure a chave API primeiro. Você pode adicionar ?api=SUA_CHAVE à URL ou configurá-la nas configurações.',
@@ -310,6 +318,7 @@ export const translations = {
     language: '语言',
     settings: '设置',
     theme: '主题',
+    more: '更多',
     errors: {
       allAisFailed: '所有 AI 都无法响应，请检查 API 密钥和网络连接',
       apiKeyRequired: '请先设置 API 密钥。您可以在 URL 中添加 ?api=YOUR_KEY 或在设置中配置。',
@@ -344,6 +353,7 @@ export const translations = {
     language: 'Язык',
     settings: 'Настройки',
     theme: 'Тема',
+    more: 'Ещё',
     errors: {
       allAisFailed: 'Все ИИ не смогли ответить, проверьте API ключ и сетевое соединение',
       apiKeyRequired: 'Сначала установите API ключ. Вы можете добавить ?api=YOUR_KEY к URL или настроить его в настройках.',
