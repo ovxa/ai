@@ -284,6 +284,8 @@ export default function MessageList() {
   const t = useTranslation()
   // Maintain fullscreen state using stable key (based on message content hash or agentId+timestamp)
   const [fullscreenStates, setFullscreenStates] = useState<Record<string, boolean>>({})
+  const lastUserMessageCountRef = useRef(0)
+  const prevStreamingAgentsRef = useRef<Set<string>>(new Set())
 
 
   // 生成稳定的消息key
@@ -309,12 +311,55 @@ export default function MessageList() {
     setShouldAutoScroll(isNearBottom)
   }
 
-  // 自动滚动到底部（仅当用户在底部附近时）
+  // 自动滚动到底部（只在用户发送新消息后滚动）
   useEffect(() => {
-    if (shouldAutoScroll) {
+    const userMessageCount = messages.filter(m => m.role === 'user').length
+
+    // 只在用户消息数量增加时自动滚动
+    if (userMessageCount > lastUserMessageCountRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      lastUserMessageCountRef.current = userMessageCount
     }
-  }, [messages, streamingMessages, shouldAutoScroll])
+  }, [messages])
+
+  // 保持全屏状态在流式消息转为普通消息时不变
+  useEffect(() => {
+    const currentStreamingAgents = new Set(streamingMessages.keys())
+    const prevStreamingAgents = prevStreamingAgentsRef.current
+
+    // 检测哪些 agent 刚刚完成流式输出
+    const finishedAgents = Array.from(prevStreamingAgents).filter(
+      agentId => !currentStreamingAgents.has(agentId)
+    )
+
+    if (finishedAgents.length > 0) {
+      setFullscreenStates(prev => {
+        const newStates = { ...prev }
+
+        finishedAgents.forEach(agentId => {
+          // 生成流式消息的旧 key
+          const lastUserMessage = messages.filter(m => m.role === 'user').pop()
+          const oldStreamingKey = `${agentId}-${lastUserMessage?.id || 'init'}`
+
+          // 找到该 agent 最新的消息（刚刚完成的）
+          const latestMessage = [...messages]
+            .reverse()
+            .find(m => m.agentId === agentId && m.id !== 'streaming')
+
+          // 如果旧 key 有全屏状态，复制到新消息的 key
+          if (latestMessage && newStates[oldStreamingKey]) {
+            newStates[latestMessage.id] = newStates[oldStreamingKey]
+            delete newStates[oldStreamingKey] // 清理旧 key
+          }
+        })
+
+        return newStates
+      })
+    }
+
+    // 更新追踪的流式 agent
+    prevStreamingAgentsRef.current = currentStreamingAgents
+  }, [streamingMessages, messages])
 
   if (messages.length === 0) {
     return (
