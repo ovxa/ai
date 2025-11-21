@@ -7,6 +7,7 @@ const nextConfig = {
   },
   // GitHub Pages deployed at subpath /ai/
   basePath: '/ai',
+  trailingSlash: true,
 }
 
 module.exports = nextConfig
