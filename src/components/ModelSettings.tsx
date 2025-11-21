@@ -103,7 +103,7 @@ export default function ModelSettings() {
       <button
         onClick={() => setShowSettings(true)}
         className="flex items-center gap-2 px-3 py-1.5 text-sm
-                 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                 bg-secondary hover:bg-secondary/80
                  rounded-lg transition-colors"
         title="Model Settings"
       >
@@ -117,14 +117,14 @@ export default function ModelSettings() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+      <div className="bg-card rounded-lg shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-bold text-foreground">
             Model & API Settings
           </h2>
           <button
             onClick={() => setShowSettings(false)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-muted-foreground hover:text-foreground"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -133,8 +133,8 @@ export default function ModelSettings() {
         </div>
 
         {/* API Endpoint */}
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="mb-6 p-4 bg-accent border border-border rounded-lg">
+          <label className="block text-sm font-medium text-foreground mb-2">
             API Endpoint
           </label>
           {urlEndpoint && (
@@ -148,11 +148,11 @@ export default function ModelSettings() {
             value={endpoint}
             onChange={(e) => handleEndpointChange(e.target.value)}
             placeholder="https://openrouter.ai/api/v1/chat/completions"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
-                     bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
-                     focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 border border-input rounded-lg
+                     bg-background text-foreground
+                     focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
           />
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             留空使用 OpenRouter。可使用 URL 参数：?endpoint=YOUR_ENDPOINT
           </p>
         </div>
@@ -184,8 +184,8 @@ export default function ModelSettings() {
           </button>
 
           {availableModels.length > 0 && (
-            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-900 rounded text-xs max-h-32 overflow-y-auto">
-              <div className="text-gray-600 dark:text-gray-400 mb-1">找到 {availableModels.length} 个模型</div>
+            <div className="mt-2 p-2 bg-muted rounded text-xs max-h-32 overflow-y-auto">
+              <div className="text-muted-foreground mb-1">找到 {availableModels.length} 个模型</div>
             </div>
           )}
         </div>
@@ -193,7 +193,7 @@ export default function ModelSettings() {
         {/* AI Models List */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">
               AI Models
             </h3>
             <button
@@ -210,13 +210,13 @@ export default function ModelSettings() {
               const agent = getAgents()[index]
 
               return (
-                <div key={index} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <div key={index} className="p-4 bg-muted rounded-lg">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                      <div className="text-lg font-bold text-foreground">
                         {shortName}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-xs text-muted-foreground">
                         {agent?.mention || `@${shortName.toLowerCase()}`}
                       </div>
                     </div>
@@ -238,9 +238,9 @@ export default function ModelSettings() {
                       type="text"
                       value={model}
                       onChange={(e) => handleUpdateModel(index, e.target.value)}
-                      className="w-full px-3 py-2 pr-20 border border-gray-300 dark:border-gray-600 rounded-lg
-                               bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-                               focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
+                      className="w-full px-3 py-2 pr-20 border border-input rounded-lg
+                               bg-background text-foreground
+                               focus:ring-2 focus:ring-ring focus:border-transparent text-sm font-mono"
                       placeholder="e.g., anthropic/claude-sonnet-4.5"
                     />
                     {availableModels.length > 0 && (

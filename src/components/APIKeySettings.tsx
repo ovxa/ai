@@ -35,7 +35,7 @@ export default function APIKeySettings() {
       <button
         onClick={() => setShowSettings(true)}
         className="flex items-center gap-2 px-3 py-1.5 text-sm
-                 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
+                 bg-secondary hover:bg-secondary/80
                  rounded-lg transition-colors"
         title="API Key Settings"
       >
@@ -52,15 +52,15 @@ export default function APIKeySettings() {
       bg-black/50 backdrop-blur-sm
       ${showSettings ? '' : 'hidden'}
     `}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 max-w-lg w-full mx-4">
+      <div className="bg-card rounded-lg shadow-2xl p-6 max-w-lg w-full mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-bold text-foreground">
             API Key Settings
           </h2>
           {apiKey && (
             <button
               onClick={() => setShowSettings(false)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-muted-foreground hover:text-foreground"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -91,11 +91,11 @@ export default function APIKeySettings() {
         {/* Current API Key Status */}
         {apiKey && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Current API Key
             </label>
             <div className="flex items-center gap-2">
-              <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-900 rounded font-mono text-sm overflow-hidden overflow-ellipsis">
+              <code className="flex-1 px-3 py-2 bg-muted rounded font-mono text-sm overflow-hidden overflow-ellipsis">
                 {apiKey.substring(0, 20)}...{apiKey.substring(apiKey.length - 4)}
               </code>
               <button
@@ -113,7 +113,7 @@ export default function APIKeySettings() {
 
         {/* Input New Key */}
         <div className="mb-4">
-          <label htmlFor="api-key-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="api-key-input" className="block text-sm font-medium text-foreground mb-2">
             {apiKey ? 'Update API Key' : 'Enter OpenRouter API Key'}
           </label>
           <input
@@ -122,16 +122,16 @@ export default function APIKeySettings() {
             value={inputKey}
             onChange={(e) => setInputKey(e.target.value)}
             placeholder="sk-or-..."
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
-                     bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100
-                     focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-input rounded-lg
+                     bg-background text-foreground
+                     focus:ring-2 focus:ring-ring focus:border-transparent"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSave()
               }
             }}
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Get your API key from{' '}
             <a
               href="https://openrouter.ai/keys"
@@ -145,17 +145,17 @@ export default function APIKeySettings() {
         </div>
 
         {/* Instructions */}
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="mb-4 p-3 bg-muted rounded-lg">
+          <p className="text-sm font-medium text-foreground mb-2">
             Alternative: Use URL Parameter
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+          <p className="text-xs text-muted-foreground mb-2">
             You can also pass the API key via URL:
           </p>
-          <code className="block text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded font-mono overflow-x-auto">
+          <code className="block text-xs bg-background px-2 py-1 rounded font-mono overflow-x-auto">
             {typeof window !== 'undefined' ? window.location.origin : ''}?api=YOUR_API_KEY
           </code>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Multiple keys: ?api=key1&api=key2
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function APIKeySettings() {
           {apiKey && (
             <button
               onClick={() => setShowSettings(false)}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>
