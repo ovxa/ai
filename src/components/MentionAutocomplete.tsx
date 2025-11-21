@@ -57,20 +57,22 @@ export default function MentionAutocomplete({
     return null
   }
 
+  // 最多显示4个选项
+  const displayOptions = options.slice(0, 4)
+
   return (
     <div
       ref={listRef}
       className="fixed z-50 bg-card rounded-lg shadow-xl border border-border overflow-hidden"
       style={{
-        top: position.top,
+        bottom: `calc(100vh - ${position.top}px + 10px)`, // 显示在输入框上方
         left: Math.max(8, Math.min(position.left, window.innerWidth - 288)), // Keep within viewport with 8px margin
-        maxHeight: '200px',
         minWidth: '280px',
         maxWidth: 'calc(100vw - 16px)' // Never exceed viewport width
       }}
     >
-      <div className="overflow-y-auto max-h-[200px]">
-        {options.map((option, index) => {
+      <div className="overflow-y-auto">
+        {displayOptions.map((option, index) => {
           const isSelected = index === selectedIndex
           const colorClass = option.color && option.color in colorClasses
             ? colorClasses[option.color as keyof typeof colorClasses]
