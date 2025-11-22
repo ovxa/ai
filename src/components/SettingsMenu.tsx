@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Language, languageNames, getCurrentLanguage, saveLanguage, useTranslation } from '@/lib/i18n'
 import ModelSettings from './ModelSettings'
 import APIKeySettings from './APIKeySettings'
+import { useChatStore } from '@/lib/store'
 
 interface SettingsMenuProps {
   onOpenChange?: (isOpen: boolean) => void
@@ -21,6 +22,7 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
   const modelSettingsRef = useRef<HTMLDivElement>(null)
   const apiKeySettingsRef = useRef<HTMLDivElement>(null)
 
+  const { sequentialMode, setSequentialMode } = useChatStore()
   const t = useTranslation()
 
   useEffect(() => {
@@ -63,6 +65,10 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
     } else {
       root.classList.remove('dark')
     }
+  }
+
+  const handleSequentialModeToggle = async () => {
+    await setSequentialMode(!sequentialMode)
   }
 
   const toggleSection = (section: string) => {
@@ -195,6 +201,31 @@ export default function SettingsMenu({ onOpenChange }: SettingsMenuProps) {
                       />
                     )}
                   </svg>
+                </div>
+              </button>
+
+              {/* Sequential Mode Toggle */}
+              <button
+                onClick={handleSequentialModeToggle}
+                className="w-full flex items-center justify-between py-3 px-4 hover:bg-accent transition-colors"
+                title={t.sequentialModeDescription}
+              >
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium text-foreground">
+                    {t.sequentialMode}
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-0.5">
+                    {t.sequentialModeDescription}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                  <div className={`relative w-11 h-6 rounded-full transition-colors ${
+                    sequentialMode ? 'bg-primary' : 'bg-muted'
+                  }`}>
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                      sequentialMode ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </div>
                 </div>
               </button>
 

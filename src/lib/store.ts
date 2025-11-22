@@ -2,8 +2,9 @@ import { create } from 'zustand'
 import { AgentId, AgentStatus, Message, AgentState } from '@/types'
 import { getAllAgentIds, getAgentById, initializeCustomModels, getModelsFromURL, saveCustomModels } from './agents'
 import { parseMessage } from '@/utils/mention'
-import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint, getEndpointFromURL, saveCustomEndpoint, cleanURLParameters } from './api'
+import { callChatAPI, getAvailableAPIKey, saveAPIKey, getCustomEndpoint, getEndpointFromURL, saveCustomEndpoint, cleanURLParameters, migrateAPIKey } from './api'
 import { getTranslation } from './i18n'
+import { secureGetItem, secureSetItem } from '@/utils/encryption'
 
 interface ChatStore {
   // State
@@ -18,6 +19,7 @@ interface ChatStore {
   streamingMessages: Map<AgentId, string> // Streaming content from multiple AIs simultaneously
   abortControllers: Map<AgentId, AbortController> // Independent abort controller for each AI
   aiMentionCount: number // AI-to-AI mention counter (starts from latest user message)
+  sequentialMode: boolean // Sequential mode for low-power devices
 
   // Actions
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
@@ -33,9 +35,10 @@ interface ChatStore {
   sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean, mentionedBy?: AgentId) => Promise<void>
   stopGeneration: (agentId: AgentId) => void
   stopAllGeneration: () => void
-  setAPIKey: (key: string) => void
+  setAPIKey: (key: string) => Promise<void>
   setCustomEndpoint: (endpoint: string | null) => void
-  initializeAPIKey: () => void
+  setSequentialMode: (enabled: boolean) => Promise<void>
+  initializeAPIKey: () => Promise<void>
   reset: () => void
 }
 
@@ -64,6 +67,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   streamingMessages: new Map(),
   abortControllers: new Map(),
   aiMentionCount: 0,
+  sequentialMode: false,
 
   addMessage: (message) => {
     const newMessage: Message = {
@@ -174,7 +178,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendMessage: async (content) => {
-    const { addMessage, sendToSpecificAgents, stopAllGeneration } = get()
+    const { addMessage, sendToSpecificAgents, stopAllGeneration, sequentialMode } = get()
 
     // Stop all previous generation
     stopAllGeneration()
@@ -192,14 +196,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       mentions: mentions.length > 0 ? mentions : undefined
     })
 
-    // Decide send strategy based on mentions
+    // Decide send strategy based on mentions and sequential mode
     if (mentions.length > 0) {
-      // Has @mention: send to specific agents in parallel, no filtering (can see all AI responses)
-      await sendToSpecificAgents(cleanContent, mentions, false, false)
+      // Has @mention: send to specific agents, use sequential mode preference
+      await sendToSpecificAgents(cleanContent, mentions, sequentialMode, false)
     } else {
-      // No @mention: parallel execution, each AI only sees their own and user's conversation (filter messages)
+      // No @mention: use sequential mode preference, each AI only sees their own and user's conversation (filter messages)
       const allAgents = getAllAgentIds()
-      await sendToSpecificAgents(cleanContent, allAgents, false, true)
+      await sendToSpecificAgents(cleanContent, allAgents, sequentialMode, true)
     }
   },
 
@@ -412,10 +416,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     })
   },
 
-  setAPIKey: (key) => {
+  setAPIKey: async (key) => {
     set({ apiKey: key })
     if (key) {
-      saveAPIKey(key)
+      await saveAPIKey(key)
     }
   },
 
@@ -423,12 +427,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ customEndpoint: endpoint })
   },
 
-  initializeAPIKey: () => {
+  setSequentialMode: async (enabled) => {
+    set({ sequentialMode: enabled })
+    await secureSetItem('sequential_mode', enabled ? 'true' : 'false')
+  },
+
+  initializeAPIKey: async () => {
+    // Migrate existing API key to encrypted storage
+    await migrateAPIKey()
+
     // Read and save API key from URL if present
-    const key = getAvailableAPIKey()
+    const key = await getAvailableAPIKey()
     if (key) {
       set({ apiKey: key })
-      saveAPIKey(key) // Ensure saved to localStorage before URL cleanup
+      await saveAPIKey(key) // Ensure saved to localStorage before URL cleanup
     }
 
     // Read and save custom endpoint from URL if present
@@ -451,6 +463,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const endpoint = getCustomEndpoint()
     if (endpoint) {
       set({ customEndpoint: endpoint })
+    }
+
+    // Initialize sequential mode preference
+    const sequentialModeStr = await secureGetItem('sequential_mode')
+    if (sequentialModeStr) {
+      set({ sequentialMode: sequentialModeStr === 'true' })
     }
 
     // Clean sensitive URL parameters after all data is saved

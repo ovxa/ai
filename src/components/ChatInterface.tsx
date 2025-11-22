@@ -13,7 +13,9 @@ export default function ChatInterface() {
   // 初始化 API key（从 URL 或 localStorage）
   // 只在组件挂载时执行一次
   useEffect(() => {
-    initializeAPIKey()
+    initializeAPIKey().catch(err => {
+      console.error('Failed to initialize API key:', err)
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

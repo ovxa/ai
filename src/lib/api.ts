@@ -3,6 +3,7 @@ import { Message } from '@/types'
 import { estimateTokens } from '@/utils/markdown'
 import { getAgentById } from '@/lib/agents'
 import { getTranslation } from './i18n'
+import { secureGetItem, secureSetItem, secureRemoveItem, migrateToEncrypted } from '@/utils/encryption'
 
 export interface ChatAPIRequest {
   agentId: string
@@ -362,19 +363,19 @@ export function getAPIKeysFromURL(): string[] {
 }
 
 /**
- * Get saved API key from localStorage
+ * Get saved API key from localStorage (with encryption support)
  */
-export function getSavedAPIKey(): string | null {
+export async function getSavedAPIKey(): Promise<string | null> {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('openrouter_api_key')
+  return await secureGetItem('openrouter_api_key')
 }
 
 /**
- * Save API key to localStorage
+ * Save API key to localStorage (with encryption)
  */
-export function saveAPIKey(apiKey: string): void {
+export async function saveAPIKey(apiKey: string): Promise<void> {
   if (typeof window === 'undefined') return
-  localStorage.setItem('openrouter_api_key', apiKey)
+  await secureSetItem('openrouter_api_key', apiKey)
 }
 
 /**
@@ -382,35 +383,43 @@ export function saveAPIKey(apiKey: string): void {
  */
 export function clearSavedAPIKey(): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem('openrouter_api_key')
+  secureRemoveItem('openrouter_api_key')
+}
+
+/**
+ * Migrate API key to encrypted storage
+ */
+export async function migrateAPIKey(): Promise<void> {
+  if (typeof window === 'undefined') return
+  await migrateToEncrypted('openrouter_api_key')
 }
 
 /**
  * Get available API key
  * Priority: URL parameter > localStorage
  */
-export function getAvailableAPIKey(): string | null {
+export async function getAvailableAPIKey(): Promise<string | null> {
   // First try URL
   const urlKeys = getAPIKeysFromURL()
   if (urlKeys.length > 0) {
     return urlKeys[0]
   }
 
-  // Then try localStorage
-  return getSavedAPIKey()
+  // Then try localStorage (encrypted)
+  return await getSavedAPIKey()
 }
 
 /**
  * Get all available API keys (from both URL and localStorage)
  */
-export function getAllAPIKeys(): string[] {
+export async function getAllAPIKeys(): Promise<string[]> {
   const keys = new Set<string>()
 
   // Add keys from URL
   getAPIKeysFromURL().forEach(key => keys.add(key))
 
-  // Add key from localStorage
-  const savedKey = getSavedAPIKey()
+  // Add key from localStorage (encrypted)
+  const savedKey = await getSavedAPIKey()
   if (savedKey) {
     keys.add(savedKey)
   }
