@@ -37,8 +37,23 @@ jobs:
       - name: Add .nojekyll file
         run: touch out/.nojekyll
 
-      - name: Copy 404 page
-        run: cp out/404.html out/404.html 2>/dev/null || cp out/not-found.html out/404.html 2>/dev/null || echo "404 page will be generated"
+      - name: Copy 404 page for SPA routing
+        run: |
+          # The 404.html from public/ should already be in out/
+          # But ensure it exists
+          if [ ! -f out/404.html ]; then
+            echo "Warning: 404.html not found in out directory"
+            if [ -f out/not-found.html ]; then
+              cp out/not-found.html out/404.html
+            fi
+          fi
+          # Verify 404.html exists
+          if [ -f out/404.html ]; then
+            echo "✓ 404.html is ready for SPA routing"
+          else
+            echo "✗ Error: 404.html not found"
+            exit 1
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

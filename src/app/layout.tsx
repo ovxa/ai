@@ -44,6 +44,18 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
+                // GitHub Pages SPA redirect handler
+                // Check if we were redirected from 404.html with a redirect parameter
+                (function() {
+                  var redirect = new URLSearchParams(window.location.search).get('redirect');
+                  if (redirect) {
+                    // Remove the redirect parameter from URL
+                    var basePath = '/ai';
+                    var newUrl = basePath + redirect + window.location.search.replace(/[?&]redirect=[^&]*/, '').replace(/^&/, '?') + window.location.hash;
+                    window.history.replaceState(null, '', newUrl);
+                  }
+                })();
+
                 // Theme initialization: supports light/dark modes
                 const savedTheme = localStorage.getItem('theme');
                 const root = document.documentElement;
