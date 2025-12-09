@@ -156,7 +156,7 @@ export async function callChatAPI(
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
   // Build API message array using improved message format (sender → receiver)
-  const messages: Array<{role: 'system' | 'user' | 'assistant', content: string}> = compressedHistory.map((msg: Message) => {
+  const messages: Array<{ role: 'system' | 'user' | 'assistant', content: string }> = compressedHistory.map((msg: Message) => {
     let content = msg.content
 
     // If AI response
@@ -199,7 +199,11 @@ export async function callChatAPI(
     if (mentioningAgent && currentAgent) {
       messages.unshift({
         role: 'system',
-        content: `${mentioningAgent.name} (${mentioningAgent.mention}) mentioned you (${currentAgent.mention}) in their response and wants you to participate in the discussion. Please carefully read their message and provide your insights.`
+        content: `${mentioningAgent.name} has invoked you.
+ACTION REQUIRED:
+1. Analyze the context from ${mentioningAgent.name} and the User.
+2. Provide a sharp, additive insight or solution.
+3. PROTOCOL: Be concise. Do NOT use @mentions unless explicitly handing off control.`
       })
     }
   }
