@@ -259,7 +259,7 @@ ACTION REQUIRED:
       body: JSON.stringify({
         model: agent.model,
         messages,
-        temperature: 0.7,
+        temperature: 1.0,
         stream: true // Enable streaming output
       }),
       signal // Pass AbortSignal to support request interruption
