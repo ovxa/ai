@@ -254,7 +254,7 @@ ACTION REQUIRED:
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-        'X-Title': 'AI Trio Chat'
+        'X-Title': 'Group AI Chat'
       },
       body: JSON.stringify({
         model: agent.model,
