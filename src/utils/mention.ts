@@ -111,7 +111,7 @@ export function getAutocompleteOptions(
   const options: AutocompleteOption[] = [
     {
       id: 'all',
-      label: '@all (所有 AI)',
+      label: '@all (Everyone)',
       isOnline: true
     },
     ...getAgents().map(agent => ({
