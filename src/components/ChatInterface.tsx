@@ -26,7 +26,7 @@ export default function ChatInterface() {
 
       {/* Header - fixed at top with solid background */}
       <div className="fixed top-0 left-0 right-0 z-10 bg-card border-b border-border py-3 sm:py-4 px-4 sm:px-6">
-        <div className="w-full lg:max-w-7xl lg:mx-auto">
+        <div className="w-full">
           <div className="flex items-center justify-between gap-4">
             {/* Left: Settings icon */}
             <div className="flex-shrink-0">
@@ -95,7 +95,7 @@ export default function ChatInterface() {
       {/* Fixed input at bottom with solid background - positioned over messages */}
       {!isSettingsOpen && (
         <div className="fixed bottom-0 left-0 right-0 z-10 bg-muted border-t border-border py-2 sm:py-4 px-2 sm:px-4">
-          <div className="w-full lg:max-w-7xl lg:mx-auto">
+          <div className="w-full">
             <ChatInput />
           </div>
         </div>
