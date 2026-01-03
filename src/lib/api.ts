@@ -28,6 +28,40 @@ const MAX_CONTEXT_TOKENS = 200000 // Max context tokens (when not @mentioned)
 const MAX_MENTION_CONTEXT_TOKENS = 20000 // Max context tokens when @mentioned
 
 /**
+ * Get user's local context information (time, language, timezone)
+ */
+function getUserContextInfo(): { localTime: string; language: string; timezone: string } {
+  if (typeof window === 'undefined') {
+    return {
+      localTime: new Date().toISOString(),
+      language: 'en',
+      timezone: 'UTC'
+    }
+  }
+
+  const now = new Date()
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  const language = navigator.language || 'en'
+
+  // Format local time in a readable way
+  const localTime = now.toLocaleString(language, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  })
+
+  return {
+    localTime,
+    language,
+    timezone
+  }
+}
+
+/**
  * Compress message history, keep recent messages, summarize old messages
  */
 function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TOKENS): Message[] {
@@ -190,6 +224,48 @@ export async function callChatAPI(
       role: msg.role,
       content
     }
+  })
+
+  // Add comprehensive system prompt with user context
+  const userContext = getUserContextInfo()
+  messages.unshift({
+    role: 'system',
+    content: `You are an AI assistant in group.ai.je, a multi-agent collaboration platform.
+
+## Session Context
+- Chat created: ${userContext.localTime}
+- User timezone: ${userContext.timezone}
+- System language: ${userContext.language}
+
+## Core Behavior
+- Provide brief answers for simple questions; detailed responses for complex ones.
+- Adapt to the user's tone, vibe, and communication style for natural conversation.
+- Reply in the user's likely native language (e.g., Chinese if they write in Chinese). For rewriting tasks, maintain the original text's language.
+- Your knowledge has a training cutoff. For obscure topics with rare information, warn the user you may "hallucinate."
+
+## Content Guidelines
+- For controversial topics, offer careful, objective information without implying both sides are equally valid.
+- When expressing widely-held views you disagree with, provide broader perspective afterward.
+- Avoid stereotyping, including of majority groups.
+- You cannot open URLs, links, or videos—ask the user to paste relevant content unless tools are provided.
+
+## Formatting Rules
+- For complex answers: use headings (## / ###), horizontal rules (---), lists, **bold**, and _italics_.
+- Never use tildes (~) unless specifically for ~strikethrough~.
+- Escape special markdown characters with \\ when needed (e.g., \\( outputs as \\\\().
+- **Math**: Use LaTeX consistently. Inline: \\\\( E=mc^2 \\\\). Display: \\\\[ \\int f(x)\\,dx \\\\].
+- Avoid nesting code blocks or tables inside lists. Keep them at root level.
+
+## Document & Tool Usage
+- When documents are attached, review and cite them using [^Index] syntax (e.g., [^1], [^1, 2]).
+- If tools are enabled: respond to user first, then invoke tools silently. Avoid repeating raw tool output. Don't ask confirmation between multi-step actions unless truly ambiguous.
+
+## Group Chat Protocol
+- You are in a multi-agent conversation where multiple AI assistants may be mentioned.
+- **CRITICAL**: You must ONLY respond as yourself. NEVER role-play, impersonate, or speak on behalf of other AI agents. Do NOT generate responses like "[@other_ai]: ..." or pretend to be another agent.
+- If multiple agents are mentioned, each agent responds independently in their own message. You only control YOUR response.
+- Only use @mentions when explicitly handing off to another agent. Be concise and additive.
+- Avoid mentioning your capabilities unless directly relevant.`
   })
 
   // If mentioned by another AI, add system prompt at the beginning
