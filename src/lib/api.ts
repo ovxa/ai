@@ -189,40 +189,13 @@ export async function callChatAPI(
   const maxTokens = request.isMentioned ? MAX_MENTION_CONTEXT_TOKENS : MAX_CONTEXT_TOKENS
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
-  // Build API message array using improved message format (sender → receiver)
+  // Build API message array - keep messages simple to avoid AI mimicking formats
   const messages: Array<{ role: 'system' | 'user' | 'assistant', content: string }> = compressedHistory.map((msg: Message) => {
-    let content = msg.content
-
-    // If AI response
-    if (msg.role === 'assistant' && msg.agentId) {
-      const fromAgent = getAgentById(msg.agentId)
-      if (fromAgent) {
-        // If AI response has @mentions, show [@from → @to1 @to2]
-        if (msg.mentions && msg.mentions.length > 0) {
-          const toMentions = msg.mentions.map(mentionId => {
-            const mentionedAgent = getAgentById(mentionId)
-            return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
-          }).join(' ')
-          content = `[${fromAgent.mention} → ${toMentions}]: ${msg.content}`
-        } else {
-          // No mentions, only show sender
-          content = `[${fromAgent.mention}]: ${msg.content}`
-        }
-      }
-    }
-
-    // If user message with @mentions, show [User → @agent1 @agent2]
-    if (msg.role === 'user' && msg.mentions && msg.mentions.length > 0) {
-      const toMentions = msg.mentions.map(mentionId => {
-        const mentionedAgent = getAgentById(mentionId)
-        return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
-      }).join(' ')
-      content = `[User → ${toMentions}]: ${msg.content}`
-    }
-
+    // Pass message content directly without adding prefixes or formatting
+    // This prevents AI from learning and mimicking bracket/arrow patterns
     return {
       role: msg.role,
-      content
+      content: msg.content
     }
   })
 
@@ -292,34 +265,10 @@ ACTION REQUIRED:
   // If not, add current message (avoid duplication)
   const lastMessage = compressedHistory[compressedHistory.length - 1]
   if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== request.message) {
-    // Find last user message from full history (could be user or AI sent)
-    const allMessages = request.history || []
-    const lastMsg = allMessages[allMessages.length - 1]
-    let currentContent = request.message
-
-    // If user message with @mentions
-    if (lastMsg?.role === 'user' && lastMsg.mentions && lastMsg.mentions.length > 0) {
-      const toMentions = lastMsg.mentions.map(mentionId => {
-        const mentionedAgent = getAgentById(mentionId)
-        return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
-      }).join(' ')
-      currentContent = `[User → ${toMentions}]: ${request.message}`
-    }
-    // If AI message with @mentions (AI mention AI case)
-    else if (lastMsg?.role === 'assistant' && lastMsg.agentId && lastMsg.mentions && lastMsg.mentions.length > 0) {
-      const fromAgent = getAgentById(lastMsg.agentId)
-      const toMentions = lastMsg.mentions.map(mentionId => {
-        const mentionedAgent = getAgentById(mentionId)
-        return mentionedAgent ? mentionedAgent.mention : `@${mentionId}`
-      }).join(' ')
-      if (fromAgent) {
-        currentContent = `[${fromAgent.mention} → ${toMentions}]: ${request.message}`
-      }
-    }
-
+    // Pass message content directly without formatting
     messages.push({
       role: 'user',
-      content: currentContent
+      content: request.message
     })
   }
 
