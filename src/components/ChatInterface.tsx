@@ -6,7 +6,7 @@ import SettingsMenu from './SettingsMenu'
 import { useTranslation } from '@/lib/i18n'
 
 export default function ChatInterface() {
-  const { error, reset, initializeAPIKey, clearError } = useChatStore()
+  const { error, reset, initializeAPIKey, clearError, loadMessages } = useChatStore()
   const t = useTranslation()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
@@ -14,6 +14,7 @@ export default function ChatInterface() {
   // 只在组件挂载时执行一次
   useEffect(() => {
     initializeAPIKey()
+    loadMessages() // Load saved chat history
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

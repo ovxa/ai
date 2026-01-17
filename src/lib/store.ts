@@ -36,6 +36,7 @@ interface ChatStore {
   setAPIKey: (key: string) => void
   setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
+  loadMessages: () => void // Load messages from localStorage
   reset: () => void
 }
 
@@ -50,6 +51,33 @@ const initializeAgents = (): Map<AgentId, AgentState> => {
     })
   })
   return agents
+}
+
+// LocalStorage keys for chat history
+const CHAT_HISTORY_KEY = 'ai_chat_history'
+
+// Load messages from localStorage
+const loadMessagesFromStorage = (): Message[] => {
+  if (typeof window === 'undefined') return []
+  try {
+    const saved = localStorage.getItem(CHAT_HISTORY_KEY)
+    if (saved) {
+      return JSON.parse(saved)
+    }
+  } catch (error) {
+    console.error('Failed to load chat history:', error)
+  }
+  return []
+}
+
+// Save messages to localStorage
+const saveMessagesToStorage = (messages: Message[]) => {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages))
+  } catch (error) {
+    console.error('Failed to save chat history:', error)
+  }
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -71,15 +99,21 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       timestamp: Date.now()
     }
-    set(state => ({
-      messages: [...state.messages, newMessage]
-    }))
+    set(state => {
+      const newMessages = [...state.messages, newMessage]
+      // Save to localStorage
+      saveMessagesToStorage(newMessages)
+      return { messages: newMessages }
+    })
   },
 
   deleteMessage: (messageId) => {
-    set(state => ({
-      messages: state.messages.filter(msg => msg.id !== messageId)
-    }))
+    set(state => {
+      const newMessages = state.messages.filter(msg => msg.id !== messageId)
+      // Save to localStorage
+      saveMessagesToStorage(newMessages)
+      return { messages: newMessages }
+    })
   },
 
   updateStreamingMessage: (agentId, content) => {
@@ -457,6 +491,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     cleanURLParameters()
   },
 
+  loadMessages: () => {
+    const savedMessages = loadMessagesFromStorage()
+    if (savedMessages.length > 0) {
+      set({ messages: savedMessages })
+    }
+  },
+
   reset: () => {
     // Stop all ongoing generation first
     get().stopAllGeneration()
@@ -472,5 +513,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       aiMentionCount: 0,
       streamingMessages: new Map()
     })
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(CHAT_HISTORY_KEY)
+    }
   }
 }))
