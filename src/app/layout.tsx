@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta httpEquiv="Content-Security-Policy" content={[
           "default-src 'self'",
@@ -48,18 +48,37 @@ export default function RootLayout({
                 const savedTheme = localStorage.getItem('theme');
                 const root = document.documentElement;
 
-                // If saved theme exists, use it; otherwise use system theme as initial value
-                if (savedTheme === 'dark' || savedTheme === 'light') {
-                  if (savedTheme === 'dark') {
-                    root.classList.add('dark');
-                  }
+                // Always explicitly set the class state to prevent race conditions
+                let targetTheme = savedTheme;
+                
+                // If no saved theme, detect system preference
+                if (savedTheme !== 'dark' && savedTheme !== 'light') {
+                  targetTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  localStorage.setItem('theme', targetTheme);
+                }
+                
+                // Explicitly set or remove dark class based on target theme
+                if (targetTheme === 'dark') {
+                  root.classList.add('dark');
                 } else {
-                  // First visit: set initial theme based on system theme
-                  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  if (systemTheme === 'dark') {
-                    root.classList.add('dark');
+                  root.classList.remove('dark');
+                }
+
+                // Language initialization: set html lang attribute based on saved preference
+                const savedLang = localStorage.getItem('language');
+                const supportedLangs = ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'pt', 'zh', 'ru'];
+                if (savedLang && supportedLangs.includes(savedLang)) {
+                  root.lang = savedLang === 'zh' ? 'zh-CN' : savedLang;
+                } else {
+                  // Detect browser language
+                  const browserLang = navigator.language.toLowerCase();
+                  const langMap = { de: 'de', es: 'es', fr: 'fr', it: 'it', ja: 'ja', ko: 'ko', pt: 'pt', zh: 'zh-CN', ru: 'ru' };
+                  for (const [prefix, lang] of Object.entries(langMap)) {
+                    if (browserLang.startsWith(prefix)) {
+                      root.lang = lang;
+                      break;
+                    }
                   }
-                  localStorage.setItem('theme', systemTheme);
                 }
               } catch (e) {}
             `,
