@@ -44,21 +44,25 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                // Theme initialization: supports light/dark modes
+                // Theme initialization: supports light/dark/system modes
                 const savedTheme = localStorage.getItem('theme');
                 const root = document.documentElement;
 
-                // Always explicitly set the class state to prevent race conditions
+                // Default to 'system' for new users
                 let targetTheme = savedTheme;
-                
-                // If no saved theme, detect system preference
-                if (savedTheme !== 'dark' && savedTheme !== 'light') {
-                  targetTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  localStorage.setItem('theme', targetTheme);
+                if (savedTheme !== 'dark' && savedTheme !== 'light' && savedTheme !== 'system') {
+                  targetTheme = 'system';
+                  localStorage.setItem('theme', 'system');
                 }
                 
-                // Explicitly set or remove dark class based on target theme
-                if (targetTheme === 'dark') {
+                // Resolve actual theme to apply
+                let resolvedTheme = targetTheme;
+                if (targetTheme === 'system') {
+                  resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                
+                // Explicitly set or remove dark class based on resolved theme
+                if (resolvedTheme === 'dark') {
                   root.classList.add('dark');
                 } else {
                   root.classList.remove('dark');
