@@ -8,6 +8,43 @@ import MarkdownRenderer from './MarkdownRenderer'
 import FullscreenMarkdown from './FullscreenMarkdown'
 import { useTranslation } from '@/lib/i18n'
 
+// Helper function to detect and parse thinking content
+const parseThinkingContent = (content: string): {
+  isThinking: boolean; // Currently in thinking mode (no closing tag yet)
+  thinking: string | null; // Completed thinking content
+  mainContent: string;
+} => {
+  // Check for complete <think>...</think> block
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/i
+  const match = content.match(thinkRegex)
+
+  if (match) {
+    const thinking = match[1].trim()
+    const mainContent = content.replace(thinkRegex, '').trim()
+    return { isThinking: false, thinking, mainContent }
+  }
+
+  // Check for content before </think> without opening tag (streaming case)
+  const partialThinkRegex = /^([\s\S]*?)<\/think>/i
+  const partialMatch = content.match(partialThinkRegex)
+
+  if (partialMatch) {
+    const thinking = partialMatch[1].trim()
+    const mainContent = content.replace(partialThinkRegex, '').trim()
+    return { isThinking: false, thinking, mainContent }
+  }
+
+  // Check if currently in thinking mode (has <think> but no </think>)
+  const openThinkRegex = /<think>([\s\S]*)$/i
+  const openMatch = content.match(openThinkRegex)
+
+  if (openMatch) {
+    return { isThinking: true, thinking: null, mainContent: '' }
+  }
+
+  return { isThinking: false, thinking: null, mainContent: content }
+}
+
 const colorClasses: Record<AgentColor, string> = {
   blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
@@ -33,6 +70,85 @@ const dotColorClasses: Record<AgentColor, string> = {
   orange: 'bg-orange-500',
   pink: 'bg-pink-500',
   cyan: 'bg-cyan-500',
+}
+
+// Thinking indicator component for streaming and completed thinking blocks
+interface ThinkingIndicatorProps {
+  isThinking: boolean // Currently in thinking mode (streaming)
+  thinkingContent: string | null // Completed thinking content
+  t: ReturnType<typeof useTranslation>
+}
+
+function ThinkingIndicator({ isThinking, thinkingContent, t }: ThinkingIndicatorProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // If currently thinking (streaming), show animated thinking indicator
+  if (isThinking) {
+    return (
+      <div className="flex items-center gap-2 py-1 text-sm text-gray-500 dark:text-gray-400">
+        <svg
+          className="w-4 h-4 animate-pulse"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          />
+        </svg>
+        <span>{t.thinking || 'Thinking...'}</span>
+      </div>
+    )
+  }
+
+  // If has completed thinking content, show collapsible block
+  if (thinkingContent) {
+    return (
+      <div className="mb-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsExpanded(!isExpanded)
+          }}
+          className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-xs text-gray-600 dark:text-gray-400"
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+            />
+          </svg>
+          <span>{isExpanded ? (t.hideThinking || 'Hide thinking process') : (t.viewThinking || 'View thinking process')}</span>
+          <svg
+            className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {isExpanded && (
+          <div className="mt-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap max-h-48 overflow-y-auto">
+            {thinkingContent}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return null
 }
 
 interface MessageBubbleProps {
@@ -63,17 +179,23 @@ const MessageBubble = memo(function MessageBubble({
   // 判断当前消息是否正在流式输出
   const isStreaming = message.id === 'streaming' && message.agentId && streamingMessages.has(message.agentId)
 
-  // 检测是否包含 Markdown
-  const hasMarkdown = hasMarkdownSyntax(message.content)
+  // 解析思考内容（仅对AI消息）
+  const thinkingParsed = !isUser ? parseThinkingContent(message.content) : { isThinking: false, thinking: null, mainContent: message.content }
 
-  // 高亮显示 @mentions（仅用于纯文本模式）
-  const parts = highlightMentions(message.content)
+  // 使用解析后的主要内容
+  const displayContent = thinkingParsed.mainContent
 
-  // 生成摘要（用于折叠显示）
-  const summary = generateSummary(message.content, 80)
+  // 检测是否包含 Markdown（使用解析后的内容）
+  const hasMarkdown = hasMarkdownSyntax(displayContent)
+
+  // 高亮显示 @mentions（仅用于纯文本模式，使用解析后的内容）
+  const parts = highlightMentions(displayContent)
+
+  // 生成摘要（用于折叠显示，使用解析后的内容）
+  const summary = generateSummary(displayContent, 80)
 
   // 自动折叠长消息（12行以上）或包含 Markdown 的消息
-  const lineCount = message.content.split('\n').length
+  const lineCount = displayContent.split('\n').length
   const shouldCollapse = hasMarkdown || lineCount > 12
   const isCollapsed = shouldCollapse && !isExpanded
 
@@ -135,53 +257,63 @@ const MessageBubble = memo(function MessageBubble({
             )}
 
             {/* 消息内容 */}
-            {hasMarkdown && !isCollapsed ? (
-              // Markdown 渲染
-              <div className={isUser ? 'text-white' : ''}>
-                <MarkdownRenderer content={message.content} />
-              </div>
-            ) : isCollapsed ? (
-              // 折叠状态：显示摘要 + More
-              <div className="whitespace-pre-wrap opacity-80">
-                {summary}
-                <span className="ml-1 opacity-60">{t.more}</span>
-              </div>
-            ) : (
-              // 纯文本：高亮 @mentions
-              <div className="whitespace-pre-wrap">
-                {parts.map((part, index) => {
-                  if (part.type === 'mention') {
-                    const mentionedAgent = part.agentId ? getAgentById(part.agentId) : null
-                    const colorClass = mentionedAgent
-                      ? colorClasses[mentionedAgent.color]
-                      : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+            {/* 思考指示器（仅对AI消息） */}
+            {!isUser && (thinkingParsed.isThinking || thinkingParsed.thinking) && (
+              <ThinkingIndicator
+                isThinking={thinkingParsed.isThinking}
+                thinkingContent={thinkingParsed.thinking}
+                t={t}
+              />
+            )}
 
-                    return (
-                      <span
-                        key={index}
-                        className={`inline-block px-1.5 py-0.5 rounded text-sm font-medium ${
-                          part.content === '@all'
+            {/* 如果正在思考中且没有主要内容，只显示思考指示器 */}
+            {thinkingParsed.isThinking && !displayContent ? null : (
+              hasMarkdown && !isCollapsed ? (
+                // Markdown 渲染（使用解析后的内容）
+                <div className={isUser ? 'text-white' : ''}>
+                  <MarkdownRenderer content={displayContent} />
+                </div>
+              ) : isCollapsed ? (
+                // 折叠状态：显示摘要 + More
+                <div className="whitespace-pre-wrap opacity-80">
+                  {summary}
+                  <span className="ml-1 opacity-60">{t.more}</span>
+                </div>
+              ) : displayContent ? (
+                // 纯文本：高亮 @mentions
+                <div className="whitespace-pre-wrap">
+                  {parts.map((part, index) => {
+                    if (part.type === 'mention') {
+                      const mentionedAgent = part.agentId ? getAgentById(part.agentId) : null
+                      const colorClass = mentionedAgent
+                        ? colorClasses[mentionedAgent.color]
+                        : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+
+                      return (
+                        <span
+                          key={index}
+                          className={`inline-block px-1.5 py-0.5 rounded text-sm font-medium ${part.content === '@all'
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                             : isUser
                               ? 'bg-white/30 text-white'
                               : colorClass
-                        }`}
-                      >
-                        {part.content}
-                      </span>
-                    )
-                  }
-                  return <span key={index}>{part.content}</span>
-                })}
-              </div>
+                            }`}
+                        >
+                          {part.content}
+                        </span>
+                      )
+                    }
+                    return <span key={index}>{part.content}</span>
+                  })}
+                </div>
+              ) : null
             )}
 
           </div>
 
           {/* 时间戳和操作按钮 */}
-          <div className={`flex items-center gap-2 mt-1 px-1 ${
-            isUser ? 'justify-end' : 'justify-start'
-          }`}>
+          <div className={`flex items-center gap-2 mt-1 px-1 ${isUser ? 'justify-end' : 'justify-start'
+            }`}>
             {/* 时间戳 */}
             <div className="text-xs text-gray-500 dark:text-gray-500">
               {new Date(message.timestamp).toLocaleTimeString('zh-CN', {
