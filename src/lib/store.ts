@@ -10,7 +10,7 @@ interface ChatStore {
   messages: Message[]
   agents: Map<AgentId, AgentState>
   currentMentions: AgentId[] // Agents mentioned in current message
-  pendingAgents: AgentId[] // Agents waiting for response (show generating animation)
+  pendingAgents: Map<AgentId, number> // Agents waiting for response with request start timestamp
   isLoading: boolean
   error: string | null
   apiKey: string | null // Currently used API key
@@ -33,6 +33,8 @@ interface ChatStore {
   sendToSpecificAgents: (content: string, agentIds: AgentId[], sequential?: boolean, filterByAgent?: boolean, mentionedBy?: AgentId) => Promise<void>
   stopGeneration: (agentId: AgentId) => void
   stopAllGeneration: () => void
+  timeoutAgent: (agentId: AgentId) => void // Timeout with friendly error message
+  showErrorMessage: (agentId: AgentId, errorMessage: string) => void // Show error as AI message
   setAPIKey: (key: string) => void
   setCustomEndpoint: (endpoint: string | null) => void
   initializeAPIKey: () => void
@@ -80,11 +82,40 @@ const saveMessagesToStorage = (messages: Message[]) => {
   }
 }
 
+// Strip any [AIName]: prefix from AI response (AIs sometimes copy the format)
+const stripAIPrefix = (content: string): string => {
+  // Match patterns like "[AIName]: " or "[AIName]:" at the beginning
+  // Also handle cases where AI outputs multiple "[Name]: content" lines
+  let cleaned = content.trim()
+
+  // Remove leading [Name]: prefix (single line)
+  const prefixMatch = cleaned.match(/^\[[^\]]+\]:\s*/)
+  if (prefixMatch) {
+    cleaned = cleaned.slice(prefixMatch[0].length)
+  }
+
+  // If the content contains multiple "[Name]:" lines (AI trying to role-play as others),
+  // only keep the content that's NOT prefixed with [OtherAI]:
+  // This is a simple heuristic - take just the first real content
+  const lines = cleaned.split('\n')
+  const cleanedLines: string[] = []
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+    // Skip lines that start with [Name]: format
+    if (/^\[[^\]]+\]:/.test(trimmedLine)) {
+      continue
+    }
+    cleanedLines.push(line)
+  }
+
+  return cleanedLines.join('\n').trim() || cleaned
+}
+
 export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   agents: initializeAgents(),
   currentMentions: [],
-  pendingAgents: [],
+  pendingAgents: new Map(),
   isLoading: false,
   error: null,
   apiKey: null,
@@ -108,6 +139,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   deleteMessage: (messageId) => {
+    // Stop all pending/streaming generations when deleting a message
+    get().stopAllGeneration()
+
     set(state => {
       const newMessages = state.messages.filter(msg => msg.id !== messageId)
       // Save to localStorage
@@ -124,15 +158,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     })
     // Remove from pendingAgents when AI starts streaming output
     const { pendingAgents } = get()
-    if (pendingAgents.includes(agentId)) {
-      set({ pendingAgents: pendingAgents.filter(id => id !== agentId) })
+    if (pendingAgents.has(agentId)) {
+      set(state => {
+        const newPendingAgents = new Map(state.pendingAgents)
+        newPendingAgents.delete(agentId)
+        return { pendingAgents: newPendingAgents }
+      })
     }
   },
 
   finalizeStreamingMessage: (agentId) => {
     const { streamingMessages, addMessage, sendToSpecificAgents, aiMentionCount } = get()
-    const content = streamingMessages.get(agentId)
-    if (content) {
+    const rawContent = streamingMessages.get(agentId)
+    if (rawContent) {
+      // Clean any [AIName]: prefix from AI response (AIs sometimes copy the format)
+      const content = stripAIPrefix(rawContent)
+
       // Parse @mentions in AI response, exclude self
       const { mentions } = parseMessage(content, agentId)
 
@@ -170,7 +211,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   finalizeAllStreamingMessages: () => {
     const { streamingMessages, addMessage } = get()
-    streamingMessages.forEach((content, agentId) => {
+    streamingMessages.forEach((rawContent, agentId) => {
+      // Clean any [AIName]: prefix from AI response
+      const content = stripAIPrefix(rawContent)
       addMessage({
         role: 'assistant',
         content,
@@ -228,8 +271,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     // Decide send strategy based on mentions
     if (mentions.length > 0) {
-      // Has @mention: send to specific agents in parallel, no filtering (can see all AI responses)
-      await sendToSpecificAgents(cleanContent, mentions, false, false)
+      // Has @mention: send to specific agents SEQUENTIALLY, so each AI can see previous responses
+      // This enables proper turn-based interactions like counting games
+      await sendToSpecificAgents(cleanContent, mentions, true, false)
     } else {
       // No @mention: parallel execution, each AI only sees their own and user's conversation (filter messages)
       const allAgents = getAllAgentIds()
@@ -249,7 +293,29 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return
     }
 
-    set({ isLoading: true, error: null, pendingAgents: agentIds })
+    // Create pendingAgents Map with request start timestamps
+    const now = Date.now()
+    const newPendingAgents = new Map<AgentId, number>()
+
+    // Initialize pending agents
+    if (sequential) {
+      agentIds.forEach((agentId, index) => {
+        // For sequential, only start the timer for the first agent
+        // Others get a temporary placeholder (future time) to avoid premature timeout
+        // checking in MessageList.tsx
+        if (index === 0) {
+          newPendingAgents.set(agentId, now)
+        } else {
+          newPendingAgents.set(agentId, now + 86400000) // +24 hours
+        }
+      })
+    } else {
+      agentIds.forEach(agentId => {
+        newPendingAgents.set(agentId, now)
+      })
+    }
+
+    set({ isLoading: true, error: null, pendingAgents: newPendingAgents })
 
     // Create independent AbortController for each AI
     const newAbortControllers = new Map<AgentId, AbortController>()
@@ -281,6 +347,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           }
 
           setAgentStatus(agentId, 'typing')
+
+          // Update start time for timeout tracking upon actual start
+          set(state => {
+            const newPending = new Map(state.pendingAgents)
+            newPending.set(agentId, Date.now())
+            return { pendingAgents: newPending }
+          })
 
           try {
             const response = await callChatAPI(
@@ -395,7 +468,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const t = getTranslation()
       set({ error: t.errors.sendMessageFailed })
     } finally {
-      set({ isLoading: false, pendingAgents: [] })
+      set({ isLoading: false, pendingAgents: new Map() })
     }
   },
 
@@ -416,16 +489,64 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         newControllers.delete(agentId)
 
         // Remove this AI from pendingAgents
-        const newPendingAgents = state.pendingAgents.filter(id => id !== agentId)
+        const newPendingAgents = new Map(state.pendingAgents)
+        newPendingAgents.delete(agentId)
 
         return {
           abortControllers: newControllers,
           pendingAgents: newPendingAgents,
           // If no more AIs are generating, set isLoading to false
-          isLoading: newPendingAgents.length > 0 || state.streamingMessages.size > 1
+          isLoading: newPendingAgents.size > 0 || state.streamingMessages.size > 1
         }
       })
     }
+  },
+
+  timeoutAgent: (agentId) => {
+    const { abortControllers, addMessage, setAgentStatus } = get()
+    const agentAbortController = abortControllers.get(agentId)
+    const t = getTranslation()
+
+    // Abort the request
+    if (agentAbortController) {
+      agentAbortController.abort()
+    }
+
+    // Add friendly timeout error message
+    addMessage({
+      role: 'assistant',
+      content: (t.errors as Record<string, string>).timeout || '⏱️ **Request timed out** (60s)\n\nThe AI is taking too long to respond.',
+      agentId
+    })
+
+    setAgentStatus(agentId, 'error')
+
+    // Clean up
+    set(state => {
+      const newControllers = new Map(state.abortControllers)
+      newControllers.delete(agentId)
+
+      const newPendingAgents = new Map(state.pendingAgents)
+      newPendingAgents.delete(agentId)
+
+      return {
+        abortControllers: newControllers,
+        pendingAgents: newPendingAgents,
+        isLoading: newPendingAgents.size > 0 || state.streamingMessages.size > 0
+      }
+    })
+  },
+
+  showErrorMessage: (agentId, errorMessage) => {
+    const { addMessage, setAgentStatus } = get()
+
+    addMessage({
+      role: 'assistant',
+      content: errorMessage,
+      agentId
+    })
+
+    setAgentStatus(agentId, 'error')
   },
 
   stopAllGeneration: () => {
@@ -442,7 +563,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({
       abortControllers: new Map(),
       isLoading: false,
-      pendingAgents: []
+      pendingAgents: new Map()
     })
   },
 
@@ -507,7 +628,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       messages: [],
       agents: initializeAgents(),
       currentMentions: [],
-      pendingAgents: [],
+      pendingAgents: new Map(),
       isLoading: false,
       error: null,
       aiMentionCount: 0,

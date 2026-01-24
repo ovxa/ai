@@ -62,43 +62,160 @@ function getUserContextInfo(): { localTime: string; language: string; timezone: 
 }
 
 /**
- * Compress message history, keep recent messages, summarize old messages
+ * Extract the last paragraph from content, trimmed to maxLength
+ */
+function extractLastParagraph(content: string, maxLength: number): string {
+  // Split by double newlines to find paragraphs (preserves code blocks better than splitting by single \n)
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim())
+  const lastParagraph = paragraphs[paragraphs.length - 1] || content
+
+  if (lastParagraph.length <= maxLength) {
+    return lastParagraph.trim()
+  }
+  // Truncate and add ellipsis prefix
+  return '...' + lastParagraph.slice(-maxLength + 3).trim()
+}
+
+/**
+ * Check if a message is an error message and extract status code
+ */
+function extractErrorStatusCode(content: string): string | null {
+  // Match common error patterns with status codes
+  const statusMatch = content.match(/(?:Error|错误|失败)[:\s]*(\d{3})/i) ||
+    content.match(/\[.*?(\d{3}).*?\]/) ||
+    content.match(/^(🌐|⏱️|❌|🔑|⚡).*?(\d{3})/m)
+
+  if (statusMatch) {
+    const code = statusMatch[2] || statusMatch[1]
+    return `[Error: ${code}]`
+  }
+
+  // Check for error indicators without status code
+  if (/^(🌐|⏱️|❌|🔑|⚡|请求超时|Network|API|Failed)/m.test(content)) {
+    return '[Error]'
+  }
+
+  return null
+}
+
+/**
+ * Compress message history with tiered strategy based on role:
+ * 
+ * User Messages (High Priority):
+ * - Last 20: keep full content
+ * - 21-50 ago: keep last paragraph up to 280 chars
+ * - 51+ ago: discard
+ * 
+ * Assistant Messages (Lower Priority):
+ * - Last 5: keep full content
+ * - 6-15 ago: keep last paragraph up to 140 chars
+ * - 16+ ago: discard
+ * 
+ * For error messages: keep last error full (global pin), others compressed based on role quotas.
  */
 function compressHistory(messages: Message[], maxTokens: number = MAX_CONTEXT_TOKENS): Message[] {
-  // Estimate total tokens
-  let totalTokens = 0
-  const compressedMessages: Message[] = []
+  const totalCount = messages.length
+  if (totalCount === 0) return []
 
-  // Iterate backwards (preserve recent messages)
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i]
-    const msgTokens = estimateTokens(msg.content)
-
-    if (totalTokens + msgTokens < maxTokens) {
-      compressedMessages.unshift(msg)
-      totalTokens += msgTokens
-    } else {
-      // Exceeded limit, summarize all remaining old messages
-      const oldMessages = messages.slice(0, i + 1)
-
-      // Boundary check: only add summary if old messages exist
-      if (oldMessages.length > 0) {
-        const summary = summarizeMessages(oldMessages)
-
-        // Add summary message to the beginning
-        compressedMessages.unshift({
-          id: 'summary',
-          role: 'assistant',
-          content: `[History Summary]: ${summary}`,
-          timestamp: oldMessages[0].timestamp
-        })
-      }
-
+  // Find the index of the last error message (for special handling)
+  let lastErrorIndex = -1
+  for (let i = totalCount - 1; i >= 0; i--) {
+    if (extractErrorStatusCode(messages[i].content)) {
+      lastErrorIndex = i
       break
     }
   }
 
-  return compressedMessages
+  const processedMessages: Message[] = []
+  let userCount = 0
+  let assistantCount = 0
+
+  // Iterate backwards (Newest -> Oldest) to easily track "depth" per role
+  for (let i = totalCount - 1; i >= 0; i--) {
+    const msg = messages[i]
+
+    // Check if this is an error message
+    const errorCode = extractErrorStatusCode(msg.content)
+    const isLastError = (i === lastErrorIndex)
+
+    // 1. PINNED ERROR (Highest Priority)
+    // We keep it regardless of quota, to ensure we never lose the most recent error
+    if (isLastError && errorCode) {
+      processedMessages.push(msg)
+      // Increment quota counters to account for this slot
+      if (msg.role === 'user') userCount++
+      else assistantCount++
+      continue
+    }
+
+    // 2. OTHER ERRORS
+    // If it's an error but not the last one, we heavily compress it
+    // We treat it as part of the normal quota flow
+    if (errorCode) {
+      const compressedErrorMsg = { ...msg, content: errorCode }
+
+      if (msg.role === 'user') {
+        userCount++
+        if (userCount <= 50) processedMessages.push(compressedErrorMsg)
+      } else {
+        assistantCount++
+        // Assistant errors are common, keep them only if recent
+        if (assistantCount <= 15) processedMessages.push(compressedErrorMsg)
+      }
+      continue
+    }
+
+    // 3. NORMAL MESSAGES
+    if (msg.role === 'user') {
+      userCount++
+      if (userCount <= 20) {
+        // User Messages 1-20: Keep FULL
+        processedMessages.push(msg)
+      } else if (userCount <= 50) {
+        // User Messages 21-50: Compress (280 chars)
+        // We want to keep user intent as long as possible
+        processedMessages.push({
+          ...msg,
+          content: extractLastParagraph(msg.content, 280)
+        })
+      }
+      // User Messages 51+: Discard
+    } else {
+      assistantCount++
+      if (assistantCount <= 5) {
+        // AI Messages 1-5: Keep FULL
+        processedMessages.push(msg)
+      } else if (assistantCount <= 15) {
+        // AI Messages 6-15: Heavily Compress (140 chars)
+        processedMessages.push({
+          ...msg,
+          content: extractLastParagraph(msg.content, 140)
+        })
+      }
+      // AI Messages 16+: Discard
+    }
+  }
+
+  // Restore chronological order (Oldest -> Newest)
+  // processedMessages was built Newest -> Oldest
+  const compressedMessages = processedMessages.reverse()
+
+  // Additional token-based check (safety net)
+  let totalTokens = 0
+  const finalMessages: Message[] = []
+
+  // Iterate backwards to prioritize recent messages
+  for (let i = compressedMessages.length - 1; i >= 0; i--) {
+    const msg = compressedMessages[i]
+    const msgTokens = estimateTokens(msg.content)
+
+    if (totalTokens + msgTokens < maxTokens) {
+      finalMessages.unshift(msg)
+      totalTokens += msgTokens
+    }
+  }
+
+  return finalMessages
 }
 
 /**
@@ -189,10 +306,18 @@ export async function callChatAPI(
   const maxTokens = request.isMentioned ? MAX_MENTION_CONTEXT_TOKENS : MAX_CONTEXT_TOKENS
   const compressedHistory = compressHistory(historyMessages, maxTokens)
 
-  // Build API message array - keep messages simple to avoid AI mimicking formats
+  // Build API message array - include speaker identity for assistant messages
   const messages: Array<{ role: 'system' | 'user' | 'assistant', content: string }> = compressedHistory.map((msg: Message) => {
-    // Pass message content directly without adding prefixes or formatting
-    // This prevents AI from learning and mimicking bracket/arrow patterns
+    // For assistant messages, prefix with the AI's name so other AIs know who said it
+    if (msg.role === 'assistant' && msg.agentId) {
+      const speakerAgent = getAgentById(msg.agentId)
+      const speakerName = speakerAgent?.name || msg.agentId
+      return {
+        role: msg.role,
+        content: `[${speakerName}]: ${msg.content}`
+      }
+    }
+    // User messages pass through directly
     return {
       role: msg.role,
       content: msg.content
@@ -201,48 +326,26 @@ export async function callChatAPI(
 
   // Add comprehensive system prompt with user context
   const userContext = getUserContextInfo()
+  const currentAgent = getAgentById(request.agentId)
   messages.unshift({
     role: 'system',
-    content: `You are an AI assistant in group.ai.je, a multi-agent collaboration platform.
+    content: `You are ${currentAgent?.name || 'AI Assistant'} (Model: ${(currentAgent?.model || 'unknown').split('/').pop()}) in a multi-agent group.
 
-## Session Context
-- Chat created: ${userContext.localTime}
-- User timezone: ${userContext.timezone}
-- System language: ${userContext.language}
+## CONTEXT
+- Time: ${userContext.localTime} (${userContext.timezone})
+- Language: ${userContext.language}
 
-## Core Behavior
-- Provide brief answers for simple questions; detailed responses for complex ones.
-- Adapt to the user's tone, vibe, and communication style for natural conversation.
-- Reply in the user's likely native language (e.g., Chinese if they write in Chinese). For rewriting tasks, maintain the original text's language.
-- Your knowledge has a training cutoff. For obscure topics with rare information, warn the user you may "hallucinate."
+## INSTRUCTIONS
+1. **Identity**: You are explicitly ${currentAgent?.name || 'AI Assistant'}. Do NOT impersonate others.
+2. **Response**: Be concise, natural, and use the user's language.
+3. **Format**: Use Markdown. Escape special chars.
+4. **Tools**: If available, use silently. Cite docs as [^1].
 
-## Content Guidelines
-- For controversial topics, offer careful, objective information without implying both sides are equally valid.
-- When expressing widely-held views you disagree with, provide broader perspective afterward.
-- Avoid stereotyping, including of majority groups.
-- You cannot open URLs, links, or videos—ask the user to paste relevant content unless tools are provided.
-
-## Formatting Rules
-- For complex answers: use headings (## / ###), horizontal rules (---), lists, **bold**, and _italics_.
-- Never use tildes (~) unless specifically for ~strikethrough~.
-- Escape special markdown characters with \\ when needed (e.g., \\( outputs as \\\\().
-- **Math**: Use LaTeX consistently. Inline: \\\\( E=mc^2 \\\\). Display: \\\\[ \\int f(x)\\,dx \\\\].
-- Avoid nesting code blocks or tables inside lists. Keep them at root level.
-
-## Document & Tool Usage
-- When documents are attached, review and cite them using [^Index] syntax (e.g., [^1], [^1, 2]).
-- If tools are enabled: respond to user first, then invoke tools silently. Avoid repeating raw tool output. Don't ask confirmation between multi-step actions unless truly ambiguous.
-
-## Group Chat Protocol (STRICT RULES)
-- You are ONE AI in a multi-agent chat. Other AIs will respond separately in their own messages.
-- **FORBIDDEN BEHAVIORS** (violating these breaks the system):
-  1. Do NOT start your response with any prefix like "[@name]:", "[name]:", "@name:", or similar formats.
-  2. Do NOT speak for, quote, or role-play as other AI agents.
-  3. Do NOT generate multiple responses on behalf of different agents.
-  4. Do NOT use @mentions in your response UNLESS explicitly handing off a task.
-  5. Do NOT reply to or acknowledge other AI's messages unless the user asks you to.
-- Just respond directly as yourself with your answer. No labels, no prefixes, no role-play.
-- Avoid mentioning your capabilities unless directly relevant.`
+## MULTI-AGENT PROTOCOL
+- You are one of multiple AIs.
+- **Input**: Other AIs' messages are prefixed [Name]: for context.
+- **Output**: PLAIN TEXT ONLY. DO NOT prefix your response with [Name]:.
+- **Collaboration**: Reference others naturally ("As Gemini said..."). Add unique insights.`
   })
 
   // If mentioned by another AI, add system prompt at the beginning
@@ -254,17 +357,22 @@ export async function callChatAPI(
         role: 'system',
         content: `${mentioningAgent.name} has invoked you.
 ACTION REQUIRED:
-1. Analyze the context from ${mentioningAgent.name} and the User.
+    1. Analyze the context from ${mentioningAgent.name} and the User.
 2. Provide a sharp, additive insight or solution.
-3. PROTOCOL: Be concise. Do NOT use @mentions unless explicitly handing off control.`
+3. PROTOCOL: Be concise.Do NOT use @mentions unless explicitly handing off control.`
       })
     }
   }
 
-  // Check if last message is already the current user message
-  // If not, add current message (avoid duplication)
-  const lastMessage = compressedHistory[compressedHistory.length - 1]
-  if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== request.message) {
+  // Check if the current user message already exists in history
+  // In sequential mode (e.g., counting games with @All), the user message is already in history
+  // and we have subsequent AI responses. We should NOT re-add the user message in this case.
+  // Only add the current message if it's genuinely new (not already the last user message in history)
+  const userMessagesInHistory = compressedHistory.filter(m => m.role === 'user')
+  const lastUserMessage = userMessagesInHistory[userMessagesInHistory.length - 1]
+  const isMessageAlreadyInHistory = lastUserMessage && lastUserMessage.content === request.message
+
+  if (!isMessageAlreadyInHistory) {
     // Pass message content directly without formatting
     messages.push({
       role: 'user',
@@ -274,6 +382,7 @@ ACTION REQUIRED:
 
   // Declare fullContent before try block so it's accessible in catch
   let fullContent = ''
+  let buffer = '' // Buffer for incomplete lines
 
   try {
     // Call AI API with streaming enabled
@@ -298,10 +407,20 @@ ACTION REQUIRED:
       const errorText = await response.text()
       console.error('API error:', errorText)
 
-      if (response.status === 401) {
-        throw new Error(t.errors.invalidApiKey)
+      const errorMsgs = t.errors as Record<string, string>
+
+      if (response.status === 400) {
+        throw new Error(errorMsgs.badRequest400 || `${t.errors.apiError}: 400`)
+      } else if (response.status === 401) {
+        throw new Error(errorMsgs.invalidApiKey401 || t.errors.invalidApiKey)
+      } else if (response.status === 403) {
+        throw new Error(errorMsgs.forbidden403 || t.errors.invalidApiKey)
+      } else if (response.status === 404) {
+        throw new Error(errorMsgs.notFound404 || `${t.errors.apiError}: 404`)
       } else if (response.status === 429) {
         throw new Error(t.errors.rateLimitExceeded)
+      } else if (response.status >= 500) {
+        throw new Error(errorMsgs.serverError500 || `${t.errors.apiError}: ${response.status}`)
       } else {
         throw new Error(`${t.errors.apiError}: ${response.status}`)
       }
@@ -327,9 +446,20 @@ ACTION REQUIRED:
         if (done) break
 
         const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n').filter(line => line.trim() !== '')
 
+        // Add chunk to buffer
+        buffer += chunk
+
+        // Split by newline and process complete lines only
+        const lines = buffer.split('\n')
+
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || ''
+
+        // Process complete lines
         for (const line of lines) {
+          if (line.trim() === '') continue
+
           if (line.startsWith('data: ')) {
             const data = line.slice(6)
             if (data === '[DONE]') continue
@@ -366,6 +496,11 @@ ACTION REQUIRED:
     // Handle abort errors - silently return current content without interrupting user
     if (error instanceof Error && error.name === 'AbortError') {
       return { content: fullContent || '' }
+    }
+    // Handle network errors (Failed to fetch)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      const errorMsgs = t.errors as Record<string, string>
+      throw new Error(errorMsgs.networkError || '🌐 Network connection failed. Please check your internet connection.')
     }
     if (error instanceof Error) {
       throw error

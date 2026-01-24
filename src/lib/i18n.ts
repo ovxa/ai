@@ -199,6 +199,15 @@ export const translations = {
       apiCallFailed: 'Failed to call API',
       fetchModelsFailed: 'Failed to fetch models',
       aiResponseError: 'Sorry, I cannot respond right now. Please try again later.',
+      // Friendly error messages with markdown support
+      timeout: '⏱️ **Request timed out** (60s) Visit [AI.JE Help](https://ai.je/help)\n\nThe AI is taking too long to respond. This might be due to:\n- High server load\n- Network connectivity issues\n- Complex request processing\n\n💡 **Suggestions:**\n- Try sending your message again\n- Check your network connection\n- Try a simpler question',
+      badRequest400: '⚠️ **Bad Request** (400) Visit [AI.JE Help](https://ai.je/help)\n\nThe server could not understand the request. This often happens when the request is too large.\n\n💡 **Suggestions:**\n- Try clearing the conversation history\n- Shorten your message\n- Check if the selected model supports the input size',
+      invalidApiKey401: '🔑 **Invalid API Key** (401) Visit [AI.JE Help](https://ai.je/help)\n\nThe API key provided is incorrect or has expired.\n\n💡 **Suggestions:**\n- Check if you have copied the key correctly\n- Ensure the key has not been revoked\n- If you just added it, wait a few seconds',
+      networkError: '🌐 **Network connection failed** Visit [AI.JE Help](https://ai.je/help)\n\nUnable to reach the AI service. Please check:\n- Your internet connection\n- Whether the API endpoint is accessible\n\n🔗 [Check API Status](https://status.openrouter.ai)',
+      forbidden403: '🔒 **Access Denied** (403) Visit [AI.JE Help](https://ai.je/help)\n\nYour API key may not have permission for this model.\n\n💡 **Suggestions:**\n- Verify your API key is correct\n- Check if the model requires special access\n- Try a different model',
+      notFound404: '❓ **Service Not Found** (404) Visit [AI.JE Help](https://ai.je/help)\n\nThe API endpoint or model could not be found.\n\n💡 **Suggestions:**\n- Check the API endpoint URL\n- Verify the model name is correct',
+      serverError500: '🔧 **Server Error** (500) Visit [AI.JE Help](https://ai.je/help)\n\nThe AI service is experiencing issues.\n\n💡 **Suggestions:**\n- Wait a moment and try again\n- The service may be under maintenance\n\n🔗 [Check Status](https://status.openrouter.ai)',
+      helpLink: '❓ Need help? Visit [AI.JE Help](https://ai.je/help) or [OpenRouter Docs](https://openrouter.ai/docs)',
     },
   },
   es: {
@@ -836,6 +845,13 @@ export const translations = {
       apiCallFailed: 'API 调用失败',
       fetchModelsFailed: '获取模型失败',
       aiResponseError: '抱歉，我现在无法回答。请稍后再试。',
+      // 友好的错误消息，支持 Markdown
+      timeout: '⏱️ **请求超时** (60秒)\n\nAI 响应时间过长，可能的原因：\n- 服务器负载较高\n- 网络连接不稳定\n- 请求处理复杂\n\n💡 **建议：**\n- 重新发送您的消息\n- 检查网络连接\n- 尝试更简单的问题',
+      networkError: '🌐 **网络连接失败**\n\n无法连接到 AI 服务，请检查：\n- 您的网络连接是否正常\n- API 端点是否可访问\n\n🔗 [检查 API 状态](https://status.openrouter.ai)',
+      forbidden403: '🔒 **访问被拒绝** (403)\n\n您的 API 密钥可能没有此模型的访问权限。\n\n💡 **建议：**\n- 确认 API 密钥是否正确\n- 检查该模型是否需要特殊权限\n- 尝试其他模型',
+      notFound404: '❓ **服务未找到** (404)\n\n找不到 API 端点或模型。\n\n💡 **建议：**\n- 检查 API 端点 URL\n- 确认模型名称是否正确',
+      serverError500: '🔧 **服务器错误** (500)\n\nAI 服务暂时出现问题。\n\n💡 **建议：**\n- 稍等片刻后重试\n- 服务可能正在维护中\n\n🔗 [检查状态](https://status.openrouter.ai)',
+      helpLink: '❓ 需要帮助？访问 [AI.JE 帮助](https://ai.je/help) 或 [OpenRouter 文档](https://openrouter.ai/docs)',
     },
   },
   ru: {

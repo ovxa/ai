@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, memo } from 'react'
 import { Message, AgentColor } from '@/types'
 import { useChatStore } from '@/lib/store'
-import { getAgentById } from '@/lib/agents'
+import { getAgentById, getAllAgentIds } from '@/lib/agents'
 import { highlightMentions } from '@/utils/mention'
 import { hasMarkdownSyntax, generateSummary } from '@/utils/markdown'
 import MarkdownRenderer from './MarkdownRenderer'
@@ -194,15 +194,17 @@ const MessageBubble = memo(function MessageBubble({
   // 生成摘要（用于折叠显示，使用解析后的内容）
   const summary = generateSummary(displayContent, 80)
 
-  // 自动折叠长消息（12行以上）或包含 Markdown 的消息
+  // 自动折叠长消息（12行以上）
+  // 短消息即使包含 Markdown 也直接内联渲染
   const lineCount = displayContent.split('\n').length
-  const shouldCollapse = hasMarkdown || lineCount > 12
+  const isLongMessage = lineCount > 12
+  const shouldCollapse = isLongMessage
   const isCollapsed = shouldCollapse && !isExpanded
 
   const handleClick = () => {
     if (shouldCollapse) {
       if (hasMarkdown) {
-        // Markdown 消息：打开全屏查看
+        // 长 Markdown 消息：打开全屏查看
         onFullscreenToggle?.(true)
       } else {
         // 长消息：展开/折叠
@@ -409,6 +411,8 @@ export default function MessageList() {
   const messages = useChatStore(state => state.messages)
   const streamingMessages = useChatStore(state => state.streamingMessages)
   const pendingAgents = useChatStore(state => state.pendingAgents)
+  const stopGeneration = useChatStore(state => state.stopGeneration)
+  const timeoutAgent = useChatStore(state => state.timeoutAgent)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
   const t = useTranslation()
@@ -491,6 +495,33 @@ export default function MessageList() {
     prevStreamingAgentsRef.current = currentStreamingAgents
   }, [streamingMessages, messages])
 
+  // 60秒超时检测 - 使用 useEffect 避免渲染期间的副作用
+  useEffect(() => {
+    if (pendingAgents.size === 0) return
+
+    const checkTimeout = () => {
+      const now = Date.now()
+      pendingAgents.forEach((requestStartTime, agentId) => {
+        // 跳过正在流式输出的AI
+        if (streamingMessages.has(agentId)) return
+
+        const waitTime = now - requestStartTime
+        if (waitTime >= 60000) { // 60秒超时
+          console.log(`[Timeout] Agent ${agentId} timed out after 60 seconds`)
+          timeoutAgent(agentId) // 使用 timeoutAgent 显示友好的错误消息
+        }
+      })
+    }
+
+    // 立即检查一次
+    checkTimeout()
+
+    // 设置定时器每5秒检查一次
+    const intervalId = setInterval(checkTimeout, 5000)
+
+    return () => clearInterval(intervalId)
+  }, [pendingAgents, streamingMessages, timeoutAgent])
+
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -523,73 +554,93 @@ export default function MessageList() {
         )
       })}
 
-      {/* 流式输出中的消息 - 支持多个AI同时流式输出 */}
-      {Array.from(streamingMessages.entries()).map(([agentId, content]) => {
-        const streamingMessage = {
-          id: 'streaming',
-          role: 'assistant' as const,
-          content,
-          agentId,
-          timestamp: Date.now()
-        }
-        const stableKey = getStableKey(streamingMessage, agentId)
-        return (
-          <MessageBubble
-            key={`streaming-${agentId}`}
-            message={streamingMessage}
-            stableKey={stableKey}
-            isFullscreenOpen={fullscreenStates[stableKey] || false}
-            onFullscreenToggle={(open) => toggleFullscreen(stableKey, open)}
-          />
-        )
-      })}
+      {/* 流式输出中的消息 - 支持多个AI同时流式输出，按模型配置顺序排序 */}
+      {Array.from(streamingMessages.entries())
+        .sort(([agentIdA], [agentIdB]) => {
+          // Sort by agent order in configuration (getAllAgentIds returns agents in config order)
+          const allAgentIds = getAllAgentIds()
+          const indexA = allAgentIds.indexOf(agentIdA)
+          const indexB = allAgentIds.indexOf(agentIdB)
+          return indexA - indexB
+        })
+        .map(([agentId, content]) => {
+          const streamingMessage = {
+            id: 'streaming',
+            role: 'assistant' as const,
+            content,
+            agentId,
+            timestamp: Date.now()
+          }
+          const stableKey = getStableKey(streamingMessage, agentId)
+          return (
+            <MessageBubble
+              key={`streaming-${agentId}`}
+              message={streamingMessage}
+              stableKey={stableKey}
+              isFullscreenOpen={fullscreenStates[stableKey] || false}
+              onFullscreenToggle={(open) => toggleFullscreen(stableKey, open)}
+            />
+          )
+        })}
 
-      {/* 等待回复的AI占位符 - 显示生成动画 */}
-      {pendingAgents.map(agentId => {
-        // 跳过正在流式输出的AI
-        if (streamingMessages.has(agentId)) return null
+      {/* 等待回复的AI占位符 - 显示生成动画，按模型配置顺序排序 */}
+      {Array.from(pendingAgents.entries())
+        .sort(([agentIdA], [agentIdB]) => {
+          // Sort by agent order in configuration
+          const allAgentIds = getAllAgentIds()
+          const indexA = allAgentIds.indexOf(agentIdA)
+          const indexB = allAgentIds.indexOf(agentIdB)
+          return indexA - indexB
+        })
+        .map(([agentId, requestStartTime]) => {
+          // 跳过正在流式输出的AI
+          if (streamingMessages.has(agentId)) return null
 
-        const agent = getAgentById(agentId)
-        if (!agent) return null
+          const agent = getAgentById(agentId)
+          if (!agent) return null
 
-        return (
-          <div key={`pending-${agentId}`} className="flex justify-start mb-4">
-            <div className="max-w-[80%]">
-              {/* 发送者信息 */}
-              <div className="flex items-center gap-2 mb-1 px-1">
-                <div className={`w-2 h-2 rounded-full ${dotColorClasses[agent.color]}`} />
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  {agent.name}
-                </span>
-              </div>
+          // 跳过已超时的请求（由 useEffect 处理取消）
+          const waitTime = Date.now() - requestStartTime
+          if (waitTime >= 60000) return null
 
-              {/* 占位符消息气泡 */}
-              <div
-                className={`
-                  rounded-lg px-4 py-3 break-words relative
-                  ${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100
-                `}
-                style={{ paddingBottom: '0.75rem' }}
-              >
-                {/* 生成动画 */}
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="4" cy="12" r="2" fill="currentColor">
-                      <animate id="spinner_qFRN_3" begin="0;spinner_OcgL_3.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                    </circle>
-                    <circle cx="12" cy="12" r="2" fill="currentColor">
-                      <animate begin="spinner_qFRN_3.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                    </circle>
-                    <circle cx="20" cy="12" r="2" fill="currentColor">
-                      <animate id="spinner_OcgL_3" begin="spinner_qFRN_3.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
-                    </circle>
-                  </svg>
+          return (
+            <div key={`pending-${agentId}`} className="flex justify-start mb-4">
+              <div className="max-w-[80%]">
+                {/* 发送者信息 */}
+                <div className="flex items-center gap-2 mb-1 px-1">
+                  <div className={`w-2 h-2 rounded-full ${dotColorClasses[agent.color]}`} />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {agent.name}
+                  </span>
+                </div>
+
+                {/* 占位符消息气泡 */}
+                <div
+                  className={`
+                    rounded-lg px-4 py-3 break-words relative
+                    ${bgColorClasses[agent.color]} text-gray-900 dark:text-gray-100
+                  `}
+                  style={{ paddingBottom: '0.75rem' }}
+                >
+                  {/* 生成动画 */}
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="4" cy="12" r="2" fill="currentColor">
+                        <animate id="spinner_qFRN_3" begin="0;spinner_OcgL_3.end+0.25s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                      </circle>
+                      <circle cx="12" cy="12" r="2" fill="currentColor">
+                        <animate begin="spinner_qFRN_3.begin+0.1s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                      </circle>
+                      <circle cx="20" cy="12" r="2" fill="currentColor">
+                        <animate id="spinner_OcgL_3" begin="spinner_qFRN_3.begin+0.2s" attributeName="cy" calcMode="spline" dur="0.6s" values="12;6;12" keySplines=".33,.66,.66,1;.33,0,.66,.33"></animate>
+                      </circle>
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
 
       <div ref={messagesEndRef} />
     </div>
